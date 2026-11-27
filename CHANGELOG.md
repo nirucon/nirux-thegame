@@ -1,5 +1,13 @@
 # Changelog
 
+# NIRUX 0.1.1
+
+- Fix: on an AMD laptop (Xorg with glamor on amdgpu) the game made the
+  graphics driver fault after about a minute, and the whole X session ended.
+  The picture is now scaled in the game and sent with MIT-SHM, like the rest
+  of NIRUX. The X server's RENDER scaling stays available with
+  `NIRUX_RENDER=1`.
+
 # NIRUX 0.1.0
 
 The first playable demo: three of the eight sectors, one of each kind of

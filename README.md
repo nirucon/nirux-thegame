@@ -63,9 +63,12 @@ sector now and then is a game of its own.
   that cut into the bass line, the way three voices were always made to
   sound like more.
 - **Light on resources**: one small window, a fixed 60 Hz step that sleeps
-  between frames, the scaling done by the X server (RENDER) so only the
-  small picture leaves the game, and sound through `pw-cat`, `pacat` or
-  `aplay`. In tests it used about 3 to 7 percent of one core at 1920x1080.
+  between frames, whole-number scaling in plain row copies sent with MIT-SHM
+  (the way the rest of NIRUX draws), and sound through `pw-cat`, `pacat` or
+  `aplay`. In tests it used about 10 percent of one core at 1920x1080.
+  Scaling by the X server (RENDER) is available with `NIRUX_RENDER=1`, but
+  it is off by default: on an AMD laptop it made the graphics driver fault
+  and ended the X session.
 - **Attract mode**: leave the title screen alone and the high scores and a
   demo of a random sector play.
 - **Menus in the NIRUX theme**: the menu text follows the theme NIRUWM

@@ -183,10 +183,14 @@ impl Video {
         let map = c
             .get_keyboard_mapping(min_keycode, max_keycode - min_keycode + 1)?
             .reply()?;
-        let render = if std::env::var_os("NIRU_NO_RENDER").is_some() {
-            None
-        } else {
+        // Server-side scaling (RENDER with a transform) is opt-in: on an AMD
+        // laptop (Xorg with glamor, amdgpu) it made the GPU fault and took the
+        // whole X session down after about a minute. Scaling here and sending
+        // the finished picture with MIT-SHM is what the rest of the suite does.
+        let render = if std::env::var_os("NIRUX_RENDER").is_some_and(|v| v == "1") {
             init_render(&c, win, s.root_visual, s.root_depth)
+        } else {
+            None
         };
         c.map_window(win)?;
         c.flush()?;

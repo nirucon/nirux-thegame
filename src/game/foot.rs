@@ -45,6 +45,25 @@ const MAP: &[&str] = &[
     "T.....r..==..r.....T",
     "T.:......==......:.T",
     "TTT..p...==...p..TTT",
+    "TT..:....==....:..TT",
+    "T..###...==...###..T",
+    "T..#c#...==...#.#..T",
+    "T..#.#.r.==.r.#.#..T",
+    "TT%%%%%%GGGG%%%%%%TT",
+    "T........==........T",
+    "TT.##.##.==.##.##.TT",
+    "T....n...==...n....T",
+    "T..%.....==.....%..T",
+    "T.###.g..==..g.###.T",
+    "T.#c.....==.....c#.T",
+    "T.###....==....###.T",
+    "TT...r...==...r...TT",
+    "T..%%....==....%%..T",
+    "T..o.....==.....o..T",
+    "TT.ss....==....ss.TT",
+    "T....:...==...:....T",
+    "T.r......==......r.T",
+    "TTT..p...==...p..TTT",
     "..%......==......%..",
     "~~~BB~~~~BB~~~~BB~~~",
     "~~~BB~~~~BB~~~~BB~~~",
@@ -52,6 +71,27 @@ const MAP: &[&str] = &[
     "~~~BB~~~~BB~~~~BB~~~",
     "%..r.....==.....r..%",
     "T..ss....==....ss..T",
+    "T..o.....==.....o..T",
+    "T~~~.....==.....~~~T",
+    "T~~~~..r.==.r..~~~~T",
+    "T.~~~....==....~~~.T",
+    "T..c.....==.....c..T",
+    "~~~~~~..~BB~..~~~~~~",
+    "~~~~~~..~BB~..~~~~~~",
+    "T..:..g..==..g..:..T",
+    "T..ss....==....ss..T",
+    "TT%%%%%%GGGG%%%%%%TT",
+    "T~~....r.==.r....~~T",
+    "T~~~.....==.....~~~T",
+    "TT~~..n..==..n..~~TT",
+    "T.......:==:.......T",
+    "T.p..%...==...%..p.T",
+    "T~~~~~...BB...~~~~~T",
+    "T~~~~~...BB...~~~~~T",
+    "T...r....==....r...T",
+    "T.o...c..==..c...o.T",
+    "TT..:....==....:..TT",
+    "TTT......==......TTT",
     "T........k=........T",
     "TT..HH...==...HH..TT",
     "T...HH...==...HH...T",
@@ -64,6 +104,42 @@ const MAP: &[&str] = &[
     "TT.......==.......TT",
     "T..r..o..==..o..r..T",
     "T.ss.....==.....ss.T",
+    "TT.......==.......TT",
+    "T.o.o.o..==..o.o.o.T",
+    "T........==........T",
+    "T.p.p.p.r==r.p.p.p.T",
+    "T........==........T",
+    "T.o.o.o..==..o.o.o.T",
+    "T..g.....==.....g..T",
+    "T.p.p.p..==..p.p.p.T",
+    "T....c...==...c....T",
+    "T.o.o.o..==..o.o.o.T",
+    "TT..r....==....r..TT",
+    "T.p.p.p..==..p.p.p.T",
+    "T........==........T",
+    "T.o.o.o.n==n.o.o.o.T",
+    "TT%%%%%%GGGG%%%%%%TT",
+    "T........==........T",
+    "T.p.p.p..==..p.p.p.T",
+    "T..r.....==.....r..T",
+    "T.o.o.o..==..o.o.o.T",
+    "TT.......==.......TT",
+    "T..HH....==....HH..T",
+    "T..HH.r..==..r.HH..T",
+    "T........==........T",
+    "T.sss.c..==..c.sss.T",
+    "TT%%%%%%GGGG%%%%%%TT",
+    "T..n.....==.....n..T",
+    "T........==........T",
+    "TT..HH...==...HH..TT",
+    "T...HH.g.==.g.HH...T",
+    "T.c......==......c.T",
+    "T..ss.r..==..r.ss..T",
+    "T........==........T",
+    "T.:..:...==...:..:.T",
+    "TT..r....==....r..TT",
+    "T........==........T",
+    "T..o..%..==..%..o..T",
     "TT.......==.......TT",
     "TTT..p...==...p..TTT",
     "TT..:....==....:..TT",
@@ -85,6 +161,18 @@ const MAP: &[&str] = &[
     "TT.......==.......TT",
     "TTT......==......TTT",
     "TTTT.....==.....TTTT",
+    "TT.......==.......TT",
+    "T..p.....==.....p..T",
+    "T........==........T",
+    "T.:...r..==..r...:.T",
+    "T........==........T",
+    "Tp.......==.......pT",
+    "T...o....==....o...T",
+    "T........==........T",
+    "~~.......==.......~~",
+    "~~~......==......~~~",
+    "~~~~.....==.....~~~~",
+    "~~~~~....==....~~~~~",
 ];
 
 /// Sector 6: the burning city, from the plaza (top) down to the outskirts.
@@ -279,7 +367,7 @@ pub fn spec(sector: usize) -> FootSpec {
             song: SongId::Level3,
             boss_song: SongId::Boss,
             intro: "CLEAR THE ROAD TO THE GATE",
-            again: (33, 67),
+            again: (0, 0),
         },
     }
 }
@@ -287,14 +375,14 @@ pub fn spec(sector: usize) -> FootSpec {
 fn solid_walk(c: u8) -> bool {
     matches!(
         c,
-        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'~' | b'F' | b'Q'
+        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'~' | b'F' | b'Q' | b'G'
     )
 }
 
 fn solid_shot(c: u8) -> bool {
     matches!(
         c,
-        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'F'
+        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'F' | b'G'
     )
 }
 
@@ -418,9 +506,15 @@ pub struct Foot {
     spec: FootSpec,
     /// Rail rows: (row, train x, warning frames left, cool down).
     trains: Vec<(usize, f32, u32, u32)>,
+    /// Gates: row, attack waves still to come, frames to the next wave,
+    /// and whether the attack has started.
+    gates: Vec<(usize, u8, u32, bool)>,
 }
 
 fn tile_index(c: u8, theme: u8) -> usize {
+    if c == b'G' {
+        return 21;
+    }
     if theme == 1 {
         return match c {
             b':' => 14,
@@ -463,7 +557,7 @@ fn tile_index(c: u8, theme: u8) -> usize {
 fn make_tiles() -> Vec<[u8; 256]> {
     // Every theme's tiles; tile_index picks.
     let mut v = Vec::new();
-    for kind in 0..21 {
+    for kind in 0..22 {
         let mut t = [0u8; 256];
         for y in 0..16i32 {
             for x in 0..16i32 {
@@ -692,6 +786,22 @@ fn make_tiles() -> Vec<[u8; 256]> {
                             DGREY
                         }
                     }
+                    21 => {
+                        // A steel gate with hazard stripes.
+                        if !(2..=13).contains(&y) {
+                            if (x + y) % 4 < 2 {
+                                YELLOW
+                            } else {
+                                BLACK
+                            }
+                        } else if x % 4 == 0 {
+                            BLACK
+                        } else if x % 4 == 1 {
+                            LGREY
+                        } else {
+                            GREY
+                        }
+                    }
                     _ => {
                         // Gun nest: a ring of sandbags around a pit.
                         let d = (x - 8) * (x - 8) + (y - 8) * (y - 8);
@@ -755,6 +865,17 @@ impl Foot {
                 }
             }
         }
+        let waves = match diff {
+            Difficulty::Easy => 3,
+            Difficulty::Normal => 4,
+            Difficulty::Hard => 4,
+        };
+        let gates = map
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.contains(&b'G'))
+            .map(|(i, _)| (i, waves, 60, false))
+            .collect();
         let trains = map
             .iter()
             .enumerate()
@@ -798,6 +919,7 @@ impl Foot {
             tiles: make_tiles(),
             spec,
             trains,
+            gates,
         }
     }
 
@@ -1143,7 +1265,13 @@ impl Level for Foot {
         }
         // Reinforcements from the top edge now and then.
         let every = (300.0 / self.agg) as u32;
+        // (Not past a closed gate: they could never reach the player.)
+        let gate_shut = self
+            .gates
+            .iter()
+            .any(|g| (g.0 as f32 * 16.0) > self.cy - 16.0 && (g.0 as f32 * 16.0) < self.py);
         if self.boss.is_none()
+            && !gate_shut
             && self.t % every == every / 2
             && self.foes.len() < 10
             && self.t > 200
@@ -1509,6 +1637,85 @@ impl Level for Foot {
                     PowerUp::Points
                 };
                 self.pickups.push(Pickup { x, y, kind, t: 0 });
+            }
+        }
+        // Gates: when one comes into view the attack starts; when the
+        // last wave is beaten the gate opens.
+        let mut gate_events = Vec::new();
+        for gi in 0..self.gates.len() {
+            let (row, left, cool, active) = self.gates[gi];
+            let gy = row as f32 * 16.0;
+            if !active {
+                if gy > self.cy + 10.0 && gy < self.cy + 150.0 {
+                    self.gates[gi].3 = true;
+                    gate_events.push((gi, 0u8));
+                }
+                continue;
+            }
+            // Stuck attackers do not hold the gate shut for ever: one
+            // counts as beaten after half a minute.
+            let fighting = self
+                .foes
+                .iter()
+                .any(|f| f.y > gy && f.y < self.cy + VIEW as f32 + 20.0 && f.t < 1800);
+            if left > 0 {
+                if cool > 0 {
+                    self.gates[gi].2 -= 1;
+                } else if !fighting {
+                    gate_events.push((gi, 1));
+                    self.gates[gi].1 -= 1;
+                    self.gates[gi].2 = 150;
+                }
+            } else if !fighting {
+                gate_events.push((gi, 2));
+            }
+        }
+        for (gi, what) in gate_events {
+            let row = self.gates[gi].0;
+            match what {
+                0 => {
+                    self.banner = Some(("GATE LOCKED: HOLD THE LINE", self.t));
+                    out.play(Sfx::Alarm);
+                }
+                1 => {
+                    // A wave from both sides, below the gate.
+                    let n = 3 + (self.agg > 1.2) as usize;
+                    for k in 0..n {
+                        let y = row as f32 * 16.0 + 40.0 + (k as f32 * 23.0) % 70.0;
+                        let left = k % 2 == 0;
+                        let mut x = if left { 8.0 } else { W as f32 - 8.0 };
+                        let step = if left { 16.0 } else { -16.0 };
+                        let mut ok = false;
+                        for _ in 0..8 {
+                            if !solid_walk(self.at(x, y)) && !solid_walk(self.at(x, y + 6.0)) {
+                                ok = true;
+                                break;
+                            }
+                            x += step;
+                        }
+                        if !ok {
+                            continue;
+                        }
+                        let kind = if k == n - 1 && self.gates[gi].1 % 2 == 0 {
+                            Fk::Grenadier
+                        } else {
+                            Fk::Rifle
+                        };
+                        self.spawn(kind, x, y);
+                    }
+                }
+                _ => {
+                    for c in 0..COLS {
+                        if self.map[row][c] == b'G' {
+                            self.map[row][c] = b'=';
+                        }
+                    }
+                    self.gates.remove(gi);
+                    self.banner = Some(("THE GATE IS OPEN", self.t));
+                    out.play(Sfx::PowerUp);
+                    st.add(2000);
+                    break;
+                }
             }
         }
         // Trains: a warning, then a train along the rails.
@@ -2055,7 +2262,16 @@ impl Level for Foot {
     fn info(&self) -> String {
         match &self.boss {
             Some(b) => format!("boss guns {:?} core {} dying {}", b.guns, b.core, b.dying),
-            None => format!("cy {:.0} foes {}", self.cy, self.foes.len()),
+            None => format!(
+                "cy {:.0} foes {} gates {:?} foes at {:?}",
+                self.cy,
+                self.foes.len(),
+                self.gates,
+                self.foes
+                    .iter()
+                    .map(|f| (f.kind, f.x as i32, f.y as i32))
+                    .collect::<Vec<_>>()
+            ),
         }
     }
 }
@@ -2376,7 +2592,10 @@ mod tests {
                     lv.dead = 0;
                     st.lives = 3;
                     // Stand below the part that can be hurt, face up, fire.
-                    let mut inp = Input { fire: true, ..Default::default() };
+                    let mut inp = Input {
+                        fire: true,
+                        ..Default::default()
+                    };
                     if let Some(b) = &lv.boss {
                         let (tx, _) = if b.guns[0] > 0 {
                             b.gun(0)
@@ -2396,7 +2615,13 @@ mod tests {
                         break;
                     }
                 }
-                assert!(done.is_some(), "sector {} {:?}: {}", sector + 1, d, lv.info());
+                assert!(
+                    done.is_some(),
+                    "sector {} {:?}: {}",
+                    sector + 1,
+                    d,
+                    lv.info()
+                );
             }
         }
     }
@@ -2412,6 +2637,36 @@ mod tests {
         for sector in [2, 5, 7] {
             let lv = Foot::new(Difficulty::Normal, 1, sector);
             assert!(!lv.blocked(lv.px, lv.py, 4.0), "sector {sector} start");
+            // A walk from the start to the boss yard exists.
+            let rows = lv.map.len();
+            let mut seen = vec![false; rows * COLS];
+            let start = ((lv.px as usize) / 16, (lv.py as usize) / 16);
+            let mut stack = vec![start];
+            let mut reached = false;
+            while let Some((c, r)) = stack.pop() {
+                let gate = lv.map[r][c] == b'G';
+                if seen[r * COLS + c] || (solid_walk(lv.map[r][c]) && !gate) {
+                    continue;
+                }
+                seen[r * COLS + c] = true;
+                if r <= lv.boss_row + 6 {
+                    reached = true;
+                    break;
+                }
+                if c > 0 {
+                    stack.push((c - 1, r));
+                }
+                if c + 1 < COLS {
+                    stack.push((c + 1, r));
+                }
+                if r > 0 {
+                    stack.push((c, r - 1));
+                }
+                if r + 1 < rows {
+                    stack.push((c, r + 1));
+                }
+            }
+            assert!(reached, "sector {} cannot be walked", sector + 1);
         }
         let lv = Foot::new(Difficulty::Normal, 1, 2);
         assert!(!lv.blocked(lv.px, lv.py, 4.0));

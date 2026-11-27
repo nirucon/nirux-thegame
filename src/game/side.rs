@@ -335,7 +335,10 @@ impl Side {
         fx.gravity = 0.0;
         Side {
             t: 0,
-            agg: diff.aggression() * (0.8 + sector as f32 * 0.07),
+            // Space is the easiest mode to dodge in; Hard gets extra bite.
+            agg: diff.aggression()
+                * (0.8 + sector as f32 * 0.07)
+                * if diff == Difficulty::Hard { 1.3 } else { 1.0 },
             diff,
             rng: Rng::new(seed),
             fx,
@@ -499,6 +502,18 @@ impl Side {
                 vy: a.sin() * sp,
                 big: false,
             });
+            // On Hard single shots come as a narrow fan of three.
+            if self.diff == Difficulty::Hard && spread == 0.0 {
+                for d in [-0.2f32, 0.2] {
+                    self.eshots.push(Shot {
+                        x,
+                        y,
+                        vx: (a + d).cos() * sp,
+                        vy: (a + d).sin() * sp,
+                        big: false,
+                    });
+                }
+            }
         }
     }
 
@@ -1920,7 +1935,10 @@ mod tests {
                 }
                 None => return true,
             }
-            let inp = Input { fire: true, ..Default::default() };
+            let inp = Input {
+                fire: true,
+                ..Default::default()
+            };
             if lv.update(&inp, &mut st, &mut out) == Status::Cleared {
                 return true;
             }
@@ -1936,14 +1954,25 @@ mod tests {
                 spec.script.clear();
                 let mut lv = Side::new(d, 5, 3, spec);
                 lv.spawn(Ev::Boss(style));
-                assert!(beat(&mut lv, 6000), "{} {:?}: {}", STYLES[style as usize].name, d, lv.info());
+                assert!(
+                    beat(&mut lv, 6000),
+                    "{} {:?}: {}",
+                    STYLES[style as usize].name,
+                    d,
+                    lv.info()
+                );
                 assert!(lv.t > 300, "too quick to be a fight");
                 // As a mid-boss it goes away and the sector carries on.
                 let mut spec = crate::game::campaign::side_spec(0);
                 spec.script.clear();
                 let mut lv = Side::new(d, 5, 6, spec);
                 lv.spawn(Ev::MidBoss(style));
-                assert!(beat(&mut lv, 6000), "mid {} {:?}", STYLES[style as usize].name, d);
+                assert!(
+                    beat(&mut lv, 6000),
+                    "mid {} {:?}",
+                    STYLES[style as usize].name,
+                    d
+                );
                 assert!(lv.clear_t.is_none());
             }
         }

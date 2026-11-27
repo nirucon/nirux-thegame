@@ -1793,7 +1793,11 @@ impl Iso {
                     }
                 };
                 if y >= HUD_H {
-                    fb.px[row + xi] = if c >= 16 { face[(c - 16) as usize & 3] } else { gmap[c as usize] };
+                    fb.px[row + xi] = if c >= 16 {
+                        face[(c - 16) as usize & 3]
+                    } else {
+                        gmap[c as usize]
+                    };
                 }
                 ff += step;
                 lf += step;
@@ -2320,7 +2324,10 @@ mod tests {
                         lv.l = b.l;
                         lv.z = 30.0;
                     }
-                    let inp = Input { fire: true, ..Default::default() };
+                    let inp = Input {
+                        fire: true,
+                        ..Default::default()
+                    };
                     if lv.update(&inp, &mut st, &mut out) == Status::Cleared {
                         done = true;
                         break;
@@ -2350,7 +2357,14 @@ mod tests {
                 }
                 None => return,
             }
-            lv.update(&Input { fire: true, ..Default::default() }, &mut st, &mut out);
+            lv.update(
+                &Input {
+                    fire: true,
+                    ..Default::default()
+                },
+                &mut st,
+                &mut out,
+            );
         }
         panic!("the sentinel survived");
     }

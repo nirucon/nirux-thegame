@@ -51,8 +51,9 @@ now and then is a game of its own.
   move), fly over or under energy fences (some switch between low and
   high), weave between towers and shoot down bombers.
 - **On foot** (sectors 3, 6): fight up the road past riflemen, grenadiers,
-  gun nests and rooftop snipers. Fire shoots where you face, the special
-  throws a grenade. In the city, red lights at the rails mean a train.
+  gun nests and rooftop snipers. Fire shoots where you face (hold it to
+  keep your aim while you strafe), the special throws a grenade. Locked
+  gates open when the attack at them is beaten. In the city, red lights at the rails mean a train.
 - **The finale** (sector 8) runs all three in a row, with a stage of the
   final boss at the end of each, and ends with the credits.
 
@@ -108,7 +109,8 @@ pause menu. It also shows the name of the gamepad that is connected.
 
 The other two face buttons and the shoulder buttons work as fire and
 special too. In the isometric sectors up and down change altitude, and left and right
-move along the deck. On foot, the soldier fires the way he last moved.
+move along the deck. On foot, the soldier fires the way he faces; he turns the way he walks,
+but while fire is held he keeps his aim, so he can strafe.
 
 Gamepads: the game reads `/dev/input/event*` (and `/dev/input/js*` as a
 fallback). It looks for the pad in `/sys/class/input` first, so keyboards,

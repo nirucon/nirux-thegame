@@ -295,7 +295,12 @@ fn controls(g: &Game, fb: &mut Fb) {
         crate::pad::Status::None => ("NO GAMEPAD FOUND (PLUG ONE IN ANY TIME)".into(), GREY),
     };
     fb.text_center(164, &printable(&pad.0, 40), pad.1);
-    fb.text_center(176, "FLIGHT: UP, DOWN CHANGE ALTITUDE", LGREY);
+    let hint = if (t / 180) % 2 == 0 {
+        "FLIGHT: UP, DOWN CHANGE ALTITUDE"
+    } else {
+        "ON FOOT: HOLD FIRE TO KEEP YOUR AIM"
+    };
+    fb.text_center(176, hint, LGREY);
     if t % 40 < 28 {
         fb.text_center(188, "PRESS FIRE TO GO BACK", WHITE);
     }

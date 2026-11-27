@@ -15,6 +15,16 @@ The whole campaign.
   the isometric ones, tanks on foot. The script waits while one fights.
 - Longer sectors (three to six minutes each), difficulty tuned per sector:
   Easy gentler, Hard harder.
+- Iron Jungle is longer: temple ruins, a swamp, a plantation, a supply
+  camp and a beach landing, and locked gates that open once the waves of
+  attackers at them are beaten.
+- On foot, holding fire keeps the aim, so the soldier can strafe.
+- Every boss and final boss stage has a test that proves it can be
+  destroyed on every difficulty, and the autopilot clears all eight
+  sectors on every difficulty.
+- The sides of the finale's isometric deck are drawn in clear colours.
+- Hard is harder in space (aimed shots come as fans of three) and fairer on
+  foot.
 - An ending with the credits rolling.
 - Seven new songs: Shipyards, Ice Pylons, Burning City, The Gauntlet, The
   Core, Heart of Nirux (the final boss) and Freedom (the ending).

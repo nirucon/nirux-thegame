@@ -62,7 +62,7 @@ pub const INFO: [Info; LEVELS] = [
     Info {
         name: "IRON JUNGLE",
         mode: "COMMANDO ON FOOT",
-        tip: ["FIRE SHOOTS WHERE YOU FACE", FOOT_TIP],
+        tip: ["HOLD FIRE TO KEEP YOUR AIM", FOOT_TIP],
         border: GREEN,
         song: SongId::Level3,
     },

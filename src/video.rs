@@ -518,7 +518,7 @@ impl Video {
             }
         }
         if r.scale != lay.scale {
-            let f = (65536 / lay.scale.max(1)) as i32;
+            let f = 65536 / lay.scale.max(1);
             self.c.render_set_picture_transform(
                 r.src,
                 render::Transform {

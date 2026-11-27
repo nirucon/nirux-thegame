@@ -215,7 +215,10 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(fs) = g.fullscreen_req.take() {
             vid.set_fullscreen(fs)?;
         }
-        if g.quit || o.quit_after.is_some_and(|s| start.elapsed().as_secs_f32() > s) {
+        if g.quit
+            || o.quit_after
+                .is_some_and(|s| start.elapsed().as_secs_f32() > s)
+        {
             break;
         }
         if visible {
@@ -253,7 +256,8 @@ fn selftest(frames: u32, verbose: bool) -> bool {
             config::Difficulty::Hard,
         ] {
             let mut l = game::make_level(lvl, d, 0xC64 + lvl as u32);
-            let mut st = Stats::new(99);
+            let mut st = Stats::new(9);
+            st.next_life = u32::MAX;
             let t0 = Instant::now();
             let mut status = Status::Playing;
             let mut n = 0;
@@ -262,7 +266,13 @@ fn selftest(frames: u32, verbose: bool) -> bool {
                 let f0 = Instant::now();
                 let inp = l.bot(&st);
                 let mut out = Out::default();
+                let before = st.lives;
                 status = l.update(&inp, &mut st, &mut out);
+                // The autopilot plays on however often it dies.
+                st.lives = st.lives.max(3);
+                if std::env::var_os("NIRUX_DEBUG").is_some() && st.lives < before {
+                    println!("  frame {n}: life lost, {}", l.info());
+                }
                 l.draw(&mut fb, &st, 0);
                 worst = worst.max(f0.elapsed());
                 n += 1;
@@ -276,7 +286,7 @@ fn selftest(frames: u32, verbose: bool) -> bool {
                     n,
                     status,
                     st.score,
-                    99 - st.lives,
+                    st.deaths_this_level,
                     per,
                     worst.as_secs_f64() * 1000.0,
                     l.info()

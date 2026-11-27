@@ -24,7 +24,6 @@ pub trait Level {
     /// An autopilot for the attract mode and the self test.
     fn bot(&mut self, st: &Stats) -> Input;
     fn border(&self) -> u8;
-    fn boss_active(&self) -> bool;
     fn progress(&self) -> f32;
     /// A line about the state, for the self test.
     fn info(&self) -> String {
@@ -175,7 +174,11 @@ impl Game {
     }
 
     fn next_seed(&mut self) -> u32 {
-        self.seed = self.seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223) ^ self.frames as u32;
+        self.seed = self
+            .seed
+            .wrapping_mul(1_664_525)
+            .wrapping_add(1_013_904_223)
+            ^ self.frames as u32;
         self.seed | 1
     }
 

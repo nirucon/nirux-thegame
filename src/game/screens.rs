@@ -75,12 +75,14 @@ pub fn logo(fb: &mut Fb, y0: i32, t: u32) {
                         if (0..4).contains(&g) {
                             col = WHITE;
                         }
-                        if (px == bw - 1 && !filled(r, c + 1)) || (py == bh - 1 && !filled(r + 1, c)) {
+                        if (px == bw - 1 && !filled(r, c + 1))
+                            || (py == bh - 1 && !filled(r + 1, c))
+                        {
                             col = BLUE;
-                        } else if (px == 0 && !filled(r, c - 1)) || (py == 0 && !filled(r - 1, c)) {
-                            if col != BLACK {
-                                col = WHITE;
-                            }
+                        } else if ((px == 0 && !filled(r, c - 1)) || (py == 0 && !filled(r - 1, c)))
+                            && col != BLACK
+                        {
+                            col = WHITE;
                         }
                         fb.set(x, y, col);
                     }
@@ -94,7 +96,9 @@ fn scroller(fb: &mut Fb, y: i32, t: u32) {
     let chars: Vec<char> = SCROLL.chars().collect();
     let total = chars.len() as i32 * 8;
     let off = (t as i32 * 2) % total;
-    let rainbow = [WHITE, YELLOW, LGREEN, CYAN, LBLUE, PURPLE, LRED, ORANGE, YELLOW];
+    let rainbow = [
+        WHITE, YELLOW, LGREEN, CYAN, LBLUE, PURPLE, LRED, ORANGE, YELLOW,
+    ];
     let first = off / 8;
     for i in 0..42 {
         let ci = (first + i) as usize % chars.len();
@@ -117,7 +121,13 @@ fn menu_item(fb: &mut Fb, y: i32, s: &str, selected: bool, t: u32) {
         fb.hline(60, W - 61, y + 8, LBLUE);
         let w = text_w(s);
         let x = (W - w) / 2;
-        fb.text_sh(x, y, s, if t % 20 < 14 { THEME_ACCENT } else { WHITE }, BLACK);
+        fb.text_sh(
+            x,
+            y,
+            s,
+            if t % 20 < 14 { THEME_ACCENT } else { WHITE },
+            BLACK,
+        );
         let bob = ((t / 6) % 3) as i32;
         fb.char(x - 14 - bob, y, '>', YELLOW);
         fb.char(x + w + 6 + bob, y, '<', YELLOW);
@@ -182,7 +192,13 @@ fn select(g: &Game, fb: &mut Fb) {
         fb.rect(32, y - 1, 12, 15, info.border);
         fb.text(34, y + 3, &format!("{}", i + 1), WHITE);
         if open {
-            fb.text_sh(52, y, &format!("SECTOR {}  {}", i + 1, info.name), if sel { THEME_ACCENT } else { WHITE }, BLACK);
+            fb.text_sh(
+                52,
+                y,
+                &format!("SECTOR {}  {}", i + 1, info.name),
+                if sel { THEME_ACCENT } else { WHITE },
+                BLACK,
+            );
             fb.text(52, y + 9, info.mode, LGREY);
         } else {
             fb.text(52, y, &format!("SECTOR {}  ??????", i + 1), GREY);
@@ -192,7 +208,11 @@ fn select(g: &Game, fb: &mut Fb) {
     let y = 62 + LEVELS as i32 * 26 + 4;
     menu_item(fb, y, "BACK", g.sel == LEVELS, t);
     fb.text_center(176, "FIVE MORE SECTORS IN THE FULL CAMPAIGN", DGREY);
-    fb.text_center(188, &format!("DIFFICULTY {}", g.cfg.difficulty.name()), GREY);
+    fb.text_center(
+        188,
+        &format!("DIFFICULTY {}", g.cfg.difficulty.name()),
+        GREY,
+    );
 }
 
 fn options(g: &Game, fb: &mut Fb) {
@@ -220,7 +240,7 @@ fn options(g: &Game, fb: &mut Fb) {
     for (i, s) in items.iter().enumerate() {
         menu_item(fb, 64 + i as i32 * 16, s, g.sel == i, t);
     }
-    fb.text_center(170, "LEFT AND RIGHT CHANGE A SETTING", GREY);
+    fb.text_center(170, "LEFT AND RIGHT CHANGE A SETTING", THEME_MUTED);
     fb.text_center(182, "F11 FULLSCREEN   M MUTE", DGREY);
 }
 
@@ -234,11 +254,17 @@ pub fn scores(g: &Game, fb: &mut Fb) {
     raster_bar(fb, 10, &RAMP_FIRE);
     fb.text_big_center(22, "HALL OF FAME", 2, YELLOW, Some(RED));
     fb.text(40, 46, "RANK  NAME   SCORE  SECTOR", GREY);
-    let ramp = [WHITE, YELLOW, LGREEN, CYAN, LBLUE, PURPLE, LRED, ORANGE, YELLOW, LGREEN];
+    let ramp = [
+        WHITE, YELLOW, LGREEN, CYAN, LBLUE, PURPLE, LRED, ORANGE, YELLOW, LGREEN,
+    ];
     for (i, s) in g.save.scores.iter().enumerate() {
         let y = 58 + i as i32 * 11;
         let mine = g.last_place == Some(i) && t % 20 < 12;
-        let c = if mine { WHITE } else { ramp[(i + t as usize / 8) % ramp.len()] };
+        let c = if mine {
+            WHITE
+        } else {
+            ramp[(i + t as usize / 8) % ramp.len()]
+        };
         let line = format!(
             "{:>2}.   {:<3}  {:07}    {}  {}",
             i + 1,
@@ -287,7 +313,11 @@ fn intro(g: &Game, fb: &mut Fb) {
         fb.text_center_sh(142, "GET READY", WHITE, info.border);
     }
     fb.text_center(170, info.mode, GREY);
-    fb.text_center(182, &format!("LIVES {}   {}", g.stats.lives, g.diff.name()), DGREY);
+    fb.text_center(
+        182,
+        &format!("LIVES {}   {}", g.stats.lives, g.diff.name()),
+        DGREY,
+    );
 }
 
 const DARK: [u8; 16] = [0, 12, 9, 6, 6, 9, 0, 8, 9, 0, 2, 0, 11, 5, 6, 11];
@@ -298,7 +328,13 @@ fn pause(g: &Game, fb: &mut Fb) {
     }
     fb.remap(0, HUD_H, W, H - HUD_H, &DARK);
     fb.remap(0, HUD_H, W, H - HUD_H, &DARK);
+    raster_bar(fb, 54, &RAMP_GREY);
+    fb.rect(0, 57, W, 1, WHITE);
     fb.text_big_center(64, "PAUSED", 3, WHITE, Some(BLUE));
+    if let Some(l) = &g.level {
+        let p = (l.progress() * 100.0) as u32;
+        fb.text_center(144, &format!("SECTOR {}  {}% DONE", g.lvl + 1, p), LGREY);
+    }
     menu_item(fb, 108, "CONTINUE", g.sel == 0, g.t);
     menu_item(fb, 122, "QUIT TO TITLE", g.sel == 1, g.t);
 }
@@ -311,8 +347,20 @@ fn clear(g: &Game, fb: &mut Fb) {
         let y = 16 + ((t as f32 * 0.04 + i as f32 * 2.0).sin() * 10.0) as i32;
         raster_bar(fb, y, &RAMP_GREEN);
     }
-    fb.text_big_center(34, &format!("SECTOR {}", g.lvl + 1), 2, WHITE, Some(info.border));
-    fb.text_big_center(54, "CLEAR", 3, if t % 12 < 6 { YELLOW } else { WHITE }, Some(ORANGE));
+    fb.text_big_center(
+        34,
+        &format!("SECTOR {}", g.lvl + 1),
+        2,
+        WHITE,
+        Some(info.border),
+    );
+    fb.text_big_center(
+        54,
+        "CLEAR",
+        3,
+        if t % 12 < 6 { YELLOW } else { WHITE },
+        Some(ORANGE),
+    );
     let (kills, bonus, nodeath) = g.tally;
     let mut y = 92;
     let line = |fb: &mut Fb, y: i32, a: &str, b: String, c: u8| {
@@ -342,7 +390,11 @@ fn clear(g: &Game, fb: &mut Fb) {
         line(fb, y, "SCORE", format!("{total:07}"), WHITE);
     }
     if t > 150 && t % 30 < 20 {
-        let s = if g.lvl + 1 < LEVELS { "PRESS FIRE FOR THE NEXT SECTOR" } else { "PRESS FIRE" };
+        let s = if g.lvl + 1 < LEVELS {
+            "PRESS FIRE FOR THE NEXT SECTOR"
+        } else {
+            "PRESS FIRE"
+        };
         fb.text_center(176, s, CYAN);
     }
 }
@@ -356,8 +408,20 @@ fn over(g: &Game, fb: &mut Fb) {
     }
     fb.rect(0, 70, W, 50, BLACK);
     let k = t.min(50) as i32;
-    fb.text_big_center(78 - (50 - k), "GAME", 3, if t % 8 < 4 { LRED } else { RED }, Some(BROWN));
-    fb.text_big_center(78 + 26 + (50 - k), "OVER", 3, if t % 8 < 4 { LRED } else { RED }, Some(BROWN));
+    fb.text_big_center(
+        78 - (50 - k),
+        "GAME",
+        3,
+        if t % 8 < 4 { LRED } else { RED },
+        Some(BROWN),
+    );
+    fb.text_big_center(
+        78 + 26 + (50 - k),
+        "OVER",
+        3,
+        if t % 8 < 4 { LRED } else { RED },
+        Some(BROWN),
+    );
     if t > 60 {
         fb.text_center_sh(150, &format!("SCORE {:07}", g.stats.score), WHITE, DGREY);
         fb.text_center(164, &format!("SECTOR {}", g.lvl + 1), GREY);
@@ -413,7 +477,11 @@ fn victory(g: &Game, fb: &mut Fb) {
     ];
     for (i, l) in lines.iter().enumerate() {
         if t as usize > 30 + i * 15 {
-            let c = if i == 0 { [YELLOW, WHITE, CYAN][(t as usize / 6) % 3] } else { LGREY };
+            let c = if i == 0 {
+                [YELLOW, WHITE, CYAN][(t as usize / 6) % 3]
+            } else {
+                LGREY
+            };
             fb.text_center(92 + i as i32 * 10, l, c);
         }
     }

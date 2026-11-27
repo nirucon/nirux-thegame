@@ -36,9 +36,9 @@ pub const C64: [u32; 16] = [
 /// Brightness ramps used for raster bars, fire and fades (dark to light).
 pub const RAMP_BLUE: [u8; 7] = [BLUE, LBLUE, CYAN, WHITE, CYAN, LBLUE, BLUE];
 pub const RAMP_FIRE: [u8; 7] = [BROWN, RED, ORANGE, LRED, YELLOW, WHITE, YELLOW];
+pub const RAMP_GREY: [u8; 7] = [DGREY, GREY, LGREY, WHITE, LGREY, GREY, DGREY];
 pub const RAMP_GREEN: [u8; 7] = [BROWN, GREEN, LGREEN, WHITE, LGREEN, GREEN, BROWN];
 pub const RAMP_PURPLE: [u8; 7] = [BLUE, PURPLE, LRED, LGREY, LRED, PURPLE, BLUE];
-pub const RAMP_GREY: [u8; 7] = [DGREY, GREY, LGREY, WHITE, LGREY, GREY, DGREY];
 
 /// Explosion colours from hot to cold.
 pub const HEAT: [u8; 8] = [WHITE, YELLOW, LRED, ORANGE, RED, BROWN, DGREY, BLACK];
@@ -74,21 +74,6 @@ impl Lut {
     }
 }
 
-/// The C64 colour nearest to an RGB value (used to place theme colours on
-/// the border when the C64 palette is wanted).
-pub fn nearest(c: u32) -> u8 {
-    let (r, g, b) = ((c >> 16) & 255, (c >> 8) & 255, c & 255);
-    let mut best = (u32::MAX, 0u8);
-    for (i, p) in C64.iter().enumerate() {
-        let (pr, pg, pb) = ((p >> 16) & 255, (p >> 8) & 255, p & 255);
-        let d = r.abs_diff(pr).pow(2) * 3 + g.abs_diff(pg).pow(2) * 4 + b.abs_diff(pb).pow(2) * 2;
-        if d < best.0 {
-            best = (d, i as u8);
-        }
-    }
-    best.1
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,7 +83,5 @@ mod tests {
         assert_eq!(l.rgb(WHITE), 0xffffff);
         assert_eq!(l.rgb(THEME_FG), 0x123456);
         assert!(l.dark[WHITE as usize] < 0x909090);
-        assert_eq!(nearest(0xfefefe), WHITE);
-        assert_eq!(nearest(0x010101), BLACK);
     }
 }

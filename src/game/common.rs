@@ -286,20 +286,17 @@ impl Fx {
         for p in &self.p {
             let k = p.life as f32 / p.max.max(1) as f32;
             let (x, y) = (p.x as i32 + ox, p.y as i32 + oy);
-            match p.kind {
-                Pk::Smoke => {
-                    let c = if k < 0.4 { GREY } else { DGREY };
-                    let r = p.r as i32;
-                    // Dithered puffs read as smoke without blending.
-                    for dy in -r..=r {
-                        for dx in -r..=r {
-                            if dx * dx + dy * dy <= r * r && (x + dx + y + dy) & 1 == 0 {
-                                fb.set(x + dx, y + dy, c);
-                            }
+            if p.kind == Pk::Smoke {
+                let c = if k < 0.4 { GREY } else { DGREY };
+                let r = p.r as i32;
+                // Dithered puffs read as smoke without blending.
+                for dy in -r..=r {
+                    for dx in -r..=r {
+                        if dx * dx + dy * dy <= r * r && (x + dx + y + dy) & 1 == 0 {
+                            fb.set(x + dx, y + dy, c);
                         }
                     }
                 }
-                _ => {}
             }
         }
         for p in &self.p {
@@ -392,7 +389,12 @@ pub fn draw_capsule(fb: &mut Fb, x: i32, y: i32, kind: PowerUp, t: u32) {
         fb.set(x0, yy, edge);
         fb.set(x0 + w - 1, yy, edge);
     }
-    fb.char(x - 4, y0 + 1, kind.letter(), if blink { WHITE } else { YELLOW });
+    fb.char(
+        x - 4,
+        y0 + 1,
+        kind.letter(),
+        if blink { WHITE } else { YELLOW },
+    );
 }
 
 #[derive(Clone, Debug)]
@@ -403,7 +405,6 @@ pub struct Stats {
     pub bombs: u8,
     pub shield: u8,
     pub kills: u32,
-    pub spawned: u32,
     pub next_life: u32,
     pub deaths_this_level: u32,
 }
@@ -419,7 +420,6 @@ impl Stats {
             bombs: 2,
             shield: 0,
             kills: 0,
-            spawned: 0,
             next_life: LIFE_EVERY,
             deaths_this_level: 0,
         }
@@ -586,8 +586,18 @@ pub fn draw_hud(fb: &mut Fb, st: &Stats, hi: u32, line: u8) {
     let wx = 268;
     fb.text(wx, 2, "P", LRED);
     for i in 0..4 {
-        let c = if (i as u8) < st.weapon { [RED, LRED, ORANGE, YELLOW][i] } else { DGREY };
-        fb.rect(wx + 9 + i as i32 * 4, 3 + (3 - i as i32), 3, 4 + i as i32, c);
+        let c = if (i as u8) < st.weapon {
+            [RED, LRED, ORANGE, YELLOW][i]
+        } else {
+            DGREY
+        };
+        fb.rect(
+            wx + 9 + i as i32 * 4,
+            3 + (3 - i as i32),
+            3,
+            4 + i as i32,
+            c,
+        );
     }
     if st.shield > 0 {
         for i in 0..st.shield as i32 {

@@ -403,7 +403,11 @@ fn game_over() -> Song {
     let ch = "Am:16 F:16 Dm:16 E:16 Am:32";
     b.groove(0, ch, "b.......b.......", 2, BASS, DR);
     b.groove(1, ch, "c...............", 4, ARP, DR);
-    b.mel(2, LEAD, "e5:8 c5:8 | c5:8 a4:8 | d5:8 f5:8 | e5:12 g#4:4 | a4:28 r:4");
+    b.mel(
+        2,
+        LEAD,
+        "e5:8 c5:8 | c5:8 a4:8 | d5:8 f5:8 | e5:12 g#4:4 | a4:28 r:4",
+    );
     b.finish()
 }
 
@@ -417,7 +421,11 @@ fn clear() -> Song {
     b.groove(0, "C:8 F:8 G:8", "K.o.S.o.", 2, BASS, DR);
     b.groove(0, "C:24", "K...............o.......", 2, BASS, DR);
     b.groove(1, ch, "C.......", 4, ARP, DR);
-    b.mel(2, SAW, "c5:2 e5:2 g5:2 c6:2 | a5:2 c6:2 f6:4 | g5:2 b5:2 d6:2 g6:2 | e6:4 c7:16 r:4");
+    b.mel(
+        2,
+        SAW,
+        "c5:2 e5:2 g5:2 c6:2 | a5:2 c6:2 f6:4 | g5:2 b5:2 d6:2 g6:2 | e6:4 c7:16 r:4",
+    );
     b.finish()
 }
 

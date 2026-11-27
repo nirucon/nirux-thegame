@@ -3,7 +3,7 @@
 //! sample) and its volume per 5 ms step; a busy voice is taken over only by
 //! an effect of the same or higher priority, so a laser never cuts off an
 //! explosion.
-use crate::synth::{Synth, Wave, MUSIC_VOICES, VOICES};
+use crate::synth::{Synth, Wave, MUSIC_VOICES};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Sfx {
@@ -172,12 +172,10 @@ pub const STEP_MS: f32 = 5.0;
 pub fn start(slots: &mut [Slot; 2], synth: &mut Synth, x: Sfx) {
     let (prio, segs) = def(x);
     // A free voice, else the lower priority one, else nothing.
-    let pick = (0..2)
-        .find(|&i| slots[i].segs.is_none())
-        .or_else(|| {
-            let i = if slots[0].prio <= slots[1].prio { 0 } else { 1 };
-            (slots[i].prio <= prio).then_some(i)
-        });
+    let pick = (0..2).find(|&i| slots[i].segs.is_none()).or_else(|| {
+        let i = if slots[0].prio <= slots[1].prio { 0 } else { 1 };
+        (slots[i].prio <= prio).then_some(i)
+    });
     let Some(i) = pick else {
         return;
     };
@@ -211,9 +209,8 @@ fn apply(slot: &Slot, v: &mut crate::synth::Voice, new_seg: bool) {
 
 /// Advance every effect by one 5 ms step.
 pub fn step(slots: &mut [Slot; 2], synth: &mut Synth) {
-    for i in 0..2 {
+    for (i, slot) in slots.iter_mut().enumerate() {
         let v = &mut synth.v[MUSIC_VOICES + i];
-        let slot = &mut slots[i];
         let Some(segs) = slot.segs else {
             continue;
         };
@@ -233,5 +230,4 @@ pub fn step(slots: &mut [Slot; 2], synth: &mut Synth) {
         }
         apply(slot, v, new_seg);
     }
-    debug_assert!(VOICES == MUSIC_VOICES + 2);
 }

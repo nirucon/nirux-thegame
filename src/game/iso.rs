@@ -196,7 +196,14 @@ fn build_course(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
     pair(&mut o, 380.0);
     w.push((300.0, Wave::Kites(3)));
     pair(&mut o, 620.0);
-    o.push(Obj::new(Ok::Silo(PowerUp::Weapon), 760.0, 42.0, 12.0, 12.0, 12.0));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        760.0,
+        42.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
     o.push(Obj::new(Ok::Wall, 950.0, 0.0, 10.0, LW, 14.0));
     w.push((820.0, Wave::Text("WALL AHEAD: CLIMB")));
     w.push((1050.0, Wave::Kites(4)));
@@ -204,19 +211,40 @@ fn build_course(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
     fence(&mut o, 1450.0, 0.0, 26.0);
     w.push((1320.0, Wave::Text("ENERGY FENCE: FLY OVER IT")));
     w.push((1550.0, Wave::Saucers(5, 30.0)));
-    o.push(Obj::new(Ok::Silo(PowerUp::Shield), 1700.0, 70.0, 12.0, 12.0, 12.0));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Shield),
+        1700.0,
+        70.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
     // B: bridges and towers.
     w.push((1850.0, Wave::Text("THE BRIDGES")));
     for k in 0..8 {
         let f = 2000.0 + k as f32 * 130.0;
         let l = if k % 2 == 0 { 20.0 } else { 62.0 };
-        o.push(Obj::new(Ok::Tower, f, l, 12.0, 12.0, 44.0 + (k % 3) as f32 * 6.0));
+        o.push(Obj::new(
+            Ok::Tower,
+            f,
+            l,
+            12.0,
+            12.0,
+            44.0 + (k % 3) as f32 * 6.0,
+        ));
     }
     w.push((2100.0, Wave::Kites(5)));
     fence(&mut o, 2600.0, 26.0, ZMAX + 4.0);
     w.push((2480.0, Wave::Text("HIGH FENCE: FLY UNDER IT")));
     w.push((2750.0, Wave::Saucers(6, 18.0)));
-    o.push(Obj::new(Ok::Silo(PowerUp::Weapon), 2900.0, 2.0, 12.0, 12.0, 12.0));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        2900.0,
+        2.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
     w.push((3050.0, Wave::Kites(5)));
     // C: the fortress, walls with gaps.
     w.push((3350.0, Wave::Text("THE FORTRESS")));
@@ -224,12 +252,26 @@ fn build_course(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
         let f = 3500.0 + k as f32 * 260.0;
         let gap = [36.0, 8.0, 60.0, 30.0, 50.0][k];
         o.push(Obj::new(Ok::Wall, f, 0.0, 12.0, gap, 34.0));
-        o.push(Obj::new(Ok::Wall, f, gap + 30.0, 12.0, LW - gap - 30.0, 34.0));
+        o.push(Obj::new(
+            Ok::Wall,
+            f,
+            gap + 30.0,
+            12.0,
+            LW - gap - 30.0,
+            34.0,
+        ));
         o.push(Obj::new(Ok::Turret, f + 60.0, gap + 10.0, 10.0, 10.0, 7.0));
     }
     w.push((3600.0, Wave::Saucers(6, 40.0)));
     w.push((4000.0, Wave::Kites(6)));
-    o.push(Obj::new(Ok::Silo(PowerUp::Bomb), 4300.0, 44.0, 12.0, 12.0, 12.0));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Bomb),
+        4300.0,
+        44.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
     w.push((4500.0, Wave::Saucers(7, 12.0)));
     for k in 0..6 {
         pair(&mut o, 4700.0 + k as f32 * 90.0);
@@ -246,12 +288,40 @@ fn build_course(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
     }
     w.push((5400.0, Wave::Kites(6)));
     w.push((5800.0, Wave::Saucers(8, 26.0)));
-    o.push(Obj::new(Ok::Silo(PowerUp::Weapon), 6400.0, 30.0, 12.0, 12.0, 12.0));
-    o.push(Obj::new(Ok::Silo(PowerUp::Shield), 6400.0, 60.0, 12.0, 12.0, 12.0));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        6400.0,
+        30.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Shield),
+        6400.0,
+        60.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
     for k in 0..6 {
         let f = 6550.0 + k as f32 * 100.0;
-        o.push(Obj::new(Ok::Tower, f, rng.range(4.0, 80.0), 12.0, 12.0, 50.0));
-        o.push(Obj::new(Ok::Turret, f + 50.0, rng.range(4.0, 80.0), 10.0, 10.0, 7.0));
+        o.push(Obj::new(
+            Ok::Tower,
+            f,
+            rng.range(4.0, 80.0),
+            12.0,
+            12.0,
+            50.0,
+        ));
+        o.push(Obj::new(
+            Ok::Turret,
+            f + 50.0,
+            rng.range(4.0, 80.0),
+            10.0,
+            10.0,
+            7.0,
+        ));
     }
     w.push((6600.0, Wave::Kites(7)));
     w.push((7050.0, Wave::Text("WARNING: THE MONOLITH")));
@@ -344,7 +414,11 @@ impl Iso {
                     self.air.push(Air {
                         kind: Ak::Saucer,
                         f: self.cam + 150.0 + i as f32 * 4.0,
-                        l: if from_left { -20.0 - i as f32 * 16.0 } else { LW + 20.0 + i as f32 * 16.0 },
+                        l: if from_left {
+                            -20.0 - i as f32 * 16.0
+                        } else {
+                            LW + 20.0 + i as f32 * 16.0
+                        },
                         z,
                         base: self.cam,
                         t: 0,
@@ -433,7 +507,11 @@ impl Iso {
                 add(2.0, 1.0);
             }
         }
-        out.play(if st.weapon >= 4 { Sfx::Laser2 } else { Sfx::Laser });
+        out.play(if st.weapon >= 4 {
+            Sfx::Laser2
+        } else {
+            Sfx::Laser
+        });
         self.fire_cd = if st.weapon >= 4 { 6 } else { 8 };
     }
 
@@ -516,7 +594,11 @@ impl Level for Iso {
             self.cam += CAM_SPEED * 0.5;
         }
         // Bring the course into view.
-        while self.pending.first().is_some_and(|o| o.f0 < self.cam + 340.0) {
+        while self
+            .pending
+            .first()
+            .is_some_and(|o| o.f0 < self.cam + 340.0)
+        {
             let o = self.pending.remove(0);
             self.objs.push(o);
         }
@@ -638,7 +720,7 @@ impl Level for Iso {
                 Ak::Saucer => {
                     a.l += a.dir * 1.1;
                     a.f += CAM_SPEED;
-                    a.z = a.z + (a.t as f32 * 0.1).sin() * 0.3;
+                    a.z += (a.t as f32 * 0.1).sin() * 0.3;
                 }
                 Ak::Shard => {
                     let bl = boss_l.unwrap_or(48.0);
@@ -680,7 +762,13 @@ impl Level for Iso {
             }
             for o in self.objs.iter_mut() {
                 let (z0, z1) = o.z_range();
-                if s.f >= o.f0 && s.f <= o.f1 + 4.0 && s.l >= o.l0 - 2.0 && s.l <= o.l1 + 2.0 && s.z >= z0 && s.z <= z1 + 2.0 {
+                if s.f >= o.f0
+                    && s.f <= o.f1 + 4.0
+                    && s.l >= o.l0 - 2.0
+                    && s.l <= o.l1 + 2.0
+                    && s.z >= z0
+                    && s.z <= z1 + 2.0
+                {
                     if matches!(o.kind, Ok::Fence { .. }) {
                         return true;
                     }
@@ -689,7 +777,13 @@ impl Level for Iso {
                         o.flash = 4;
                         if o.hp <= 0 {
                             let pts = if o.kind == Ok::Turret { 400 } else { 600 };
-                            kills.push(((o.f0 + o.f1) / 2.0, (o.l0 + o.l1) / 2.0, o.h / 2.0, 1.8, pts));
+                            kills.push((
+                                (o.f0 + o.f1) / 2.0,
+                                (o.l0 + o.l1) / 2.0,
+                                o.h / 2.0,
+                                1.8,
+                                pts,
+                            ));
                         }
                     } else {
                         let df = s.f - cam;
@@ -700,7 +794,11 @@ impl Level for Iso {
                 }
             }
             for a in self.air.iter_mut() {
-                if a.hp > 0 && (a.f - s.f).abs() < 8.0 && (a.l - s.l).abs() < 7.0 && (a.z - s.z).abs() < 6.0 {
+                if a.hp > 0
+                    && (a.f - s.f).abs() < 8.0
+                    && (a.l - s.l).abs() < 7.0
+                    && (a.z - s.z).abs() < 6.0
+                {
                     a.hp -= 1;
                     a.flash = 4;
                     return false;
@@ -708,7 +806,11 @@ impl Level for Iso {
             }
             if let Some(b) = self.boss.as_mut() {
                 let bf = cam + 210.0;
-                if b.dying == 0 && (s.f - (bf - 12.0)).abs() < 8.0 && (s.l - b.l).abs() < 14.0 && s.z < 64.0 {
+                if b.dying == 0
+                    && (s.f - (bf - 12.0)).abs() < 8.0
+                    && (s.l - b.l).abs() < 14.0
+                    && s.z < 64.0
+                {
                     let open = !self.air.iter().any(|a| a.kind == Ak::Shard);
                     if open && (s.z - 30.0).abs() < 9.0 {
                         b.core_hp -= 1;
@@ -734,15 +836,30 @@ impl Level for Iso {
                 if let Ok::Silo(p) = o.kind {
                     drops.push(((o.f0 + o.f1) / 2.0, (o.l0 + o.l1) / 2.0, p));
                 }
-                if !kills.iter().any(|k| (k.0 - (o.f0 + o.f1) / 2.0).abs() < 0.1) {
-                    kills.push(((o.f0 + o.f1) / 2.0, (o.l0 + o.l1) / 2.0, o.h / 2.0, 1.8, 400));
+                if !kills
+                    .iter()
+                    .any(|k| (k.0 - (o.f0 + o.f1) / 2.0).abs() < 0.1)
+                {
+                    kills.push((
+                        (o.f0 + o.f1) / 2.0,
+                        (o.l0 + o.l1) / 2.0,
+                        o.h / 2.0,
+                        1.8,
+                        400,
+                    ));
                 }
                 return false;
             }
             true
         });
         for (f, l, p) in drops {
-            self.pickups.push(Pickup { f, l, z: 10.0, kind: p, t: 0 });
+            self.pickups.push(Pickup {
+                f,
+                l,
+                z: 10.0,
+                kind: p,
+                t: 0,
+            });
         }
         self.air.retain(|a| {
             if a.hp <= 0 {
@@ -751,7 +868,13 @@ impl Level for Iso {
                     Ak::Saucer => 200,
                     Ak::Shard => 4000,
                 };
-                kills.push((a.f, a.l, a.z, if a.kind == Ak::Shard { 3.0 } else { 1.3 }, pts));
+                kills.push((
+                    a.f,
+                    a.l,
+                    a.z,
+                    if a.kind == Ak::Shard { 3.0 } else { 1.3 },
+                    pts,
+                ));
                 return false;
             }
             let df = a.f - cam;
@@ -760,7 +883,11 @@ impl Level for Iso {
         for (f, l, z, size, pts) in kills {
             let (x, y) = self.proj(f, l, z);
             self.fx.explode(x, y, size);
-            out.play(if size >= 2.0 { Sfx::ExplodeBig } else { Sfx::ExplodeSmall });
+            out.play(if size >= 2.0 {
+                Sfx::ExplodeBig
+            } else {
+                Sfx::ExplodeSmall
+            });
             self.score(st, out, pts, x, y);
         }
         // Enemy shots.
@@ -782,7 +909,13 @@ impl Level for Iso {
             // Crashing into the course.
             for o in &self.objs {
                 let (z0, z1) = o.z_range();
-                if pf + 6.0 >= o.f0 && pf - 6.0 <= o.f1 && pl + 4.0 >= o.l0 && pl - 4.0 <= o.l1 && pz + 2.0 >= z0 && pz - 1.0 <= z1 {
+                if pf + 6.0 >= o.f0
+                    && pf - 6.0 <= o.f1
+                    && pl + 4.0 >= o.l0
+                    && pl - 4.0 <= o.l1
+                    && pz + 2.0 >= z0
+                    && pz - 1.0 <= z1
+                {
                     hit = true;
                 }
             }
@@ -799,7 +932,11 @@ impl Level for Iso {
         let mut got = Vec::new();
         self.pickups.retain_mut(|p| {
             p.t += 1;
-            if alive && (p.f - pf).abs() < 12.0 && (p.l - pl).abs() < 10.0 && (p.z - pz).abs() < 14.0 {
+            if alive
+                && (p.f - pf).abs() < 12.0
+                && (p.l - pl).abs() < 10.0
+                && (p.z - pz).abs() < 14.0
+            {
                 got.push((p.kind, p.f, p.l, p.z));
                 return false;
             }
@@ -851,7 +988,12 @@ impl Level for Iso {
             if let Some(g) = self.ground(a.f, a.l) {
                 let (x, y) = self.proj(a.f, a.l, g);
                 fb.hline(x as i32 - 3 + ox, x as i32 + 3 + ox, y as i32 + oy, BLACK);
-                fb.hline(x as i32 - 2 + ox, x as i32 + 2 + ox, y as i32 + 1 + oy, BLACK);
+                fb.hline(
+                    x as i32 - 2 + ox,
+                    x as i32 + 2 + ox,
+                    y as i32 + 1 + oy,
+                    BLACK,
+                );
             }
         }
         for s in &self.eshots {
@@ -923,7 +1065,11 @@ impl Level for Iso {
             }
         }
         if self.fx.flash > 0 {
-            let map = if self.fx.flash > 4 { [1u8; 16] } else { [1, 1, 7, 1, 1, 7, 15, 1, 7, 7, 1, 15, 1, 1, 1, 1] };
+            let map = if self.fx.flash > 4 {
+                [1u8; 16]
+            } else {
+                [1, 1, 7, 1, 1, 7, 15, 1, 7, 7, 1, 15, 1, 1, 1, 1]
+            };
             fb.remap(0, HUD_H, W, H - HUD_H, &map);
         }
         // Altimeter.
@@ -939,7 +1085,12 @@ impl Level for Iso {
         draw_hud(fb, st, hi, ORANGE);
         if let Some(b) = &self.boss {
             if b.dying == 0 {
-                let shard: i32 = self.air.iter().filter(|a| a.kind == Ak::Shard).map(|a| a.hp.max(0)).sum();
+                let shard: i32 = self
+                    .air
+                    .iter()
+                    .filter(|a| a.kind == Ak::Shard)
+                    .map(|a| a.hp.max(0))
+                    .sum();
                 draw_boss_bar(fb, "MONOLITH", b.core_hp + shard, b.core_max + 42, self.t);
             }
         }
@@ -988,10 +1139,20 @@ impl Level for Iso {
             let df = o.f0 - pf;
             if (-8.0..70.0).contains(&df) && tl + 4.0 >= o.l0 && tl - 4.0 <= o.l1 {
                 match o.kind {
-                    Ok::Fence { z0, z1 } => tz = if z0 > 5.0 { (z0 - 10.0).max(ZMIN) } else { z1 + 9.0 },
+                    Ok::Fence { z0, z1 } => {
+                        tz = if z0 > 5.0 {
+                            (z0 - 10.0).max(ZMIN)
+                        } else {
+                            z1 + 9.0
+                        }
+                    }
                     Ok::Wall | Ok::Tower | Ok::Pylon | Ok::Silo(_) | Ok::Turret => {
                         if matches!(o.kind, Ok::Tower) {
-                            tl = if o.l0 > 40.0 { o.l0 - 14.0 } else { o.l1 + 14.0 };
+                            tl = if o.l0 > 40.0 {
+                                o.l0 - 14.0
+                            } else {
+                                o.l1 + 14.0
+                            };
                         } else {
                             tz = tz.max(o.h + 9.0);
                         }
@@ -1021,10 +1182,6 @@ impl Level for Iso {
         }
     }
 
-    fn boss_active(&self) -> bool {
-        self.boss.is_some()
-    }
-
     fn progress(&self) -> f32 {
         (self.cam / BOSS_AT).min(1.0)
     }
@@ -1037,7 +1194,12 @@ impl Level for Iso {
                 self.air.iter().filter(|a| a.kind == Ak::Shard).count(),
                 b.dying
             ),
-            None => format!("cam {:.0} objs {} air {}", self.cam, self.objs.len(), self.air.len()),
+            None => format!(
+                "cam {:.0} objs {} air {}",
+                self.cam,
+                self.objs.len(),
+                self.air.len()
+            ),
         }
     }
 }
@@ -1141,11 +1303,15 @@ impl Iso {
                         let pf = cam * 0.45 + df * 0.45;
                         let pl = l * 0.45;
                         if x & 1 == 0 || dune_c.1 != y {
-                            let dune = (fsin(pf * 0.05) * 6.0 + fsin(pl * 0.09 + pf * 0.013) * 9.0 + pl * 0.3) as i32;
+                            let dune = (fsin(pf * 0.05) * 6.0
+                                + fsin(pl * 0.09 + pf * 0.013) * 9.0
+                                + pl * 0.3) as i32;
                             dune_c = (dune.rem_euclid(12) as u8, y);
                         }
                         let band = dune_c.0;
-                        let sparkle = (x & 1 == 0) && hash(pf as i32, pl as i32) % 97 == 0 && (t / 6 + (pf as u32)) % 5 == 0;
+                        let sparkle = (x & 1 == 0)
+                            && hash(pf as i32, pl as i32) % 97 == 0
+                            && (t / 6 + (pf as u32)) % 5 == 0;
                         if sparkle {
                             if t % 12 < 6 {
                                 WHITE
@@ -1160,9 +1326,7 @@ impl Iso {
                             } else {
                                 ORANGE
                             }
-                        } else if band < 9 {
-                            ORANGE
-                        } else if (x + y) & 1 == 0 {
+                        } else if band < 9 || (x + y) & 1 == 0 {
                             ORANGE
                         } else {
                             YELLOW
@@ -1178,7 +1342,19 @@ impl Iso {
 
     /// A box with its top and the two faces that turn towards the viewer.
     #[allow(clippy::too_many_arguments)]
-    fn iso_box(&self, fb: &mut Fb, f0: f32, f1: f32, l0: f32, l1: f32, z0: f32, z1: f32, cols: [u8; 4], ox: i32, oy: i32) {
+    fn iso_box(
+        &self,
+        fb: &mut Fb,
+        f0: f32,
+        f1: f32,
+        l0: f32,
+        l1: f32,
+        z0: f32,
+        z1: f32,
+        cols: [u8; 4],
+        ox: i32,
+        oy: i32,
+    ) {
         let p = |f: f32, l: f32, z: f32| {
             let (x, y) = self.proj(f, l, z);
             (x + ox as f32, y + oy as f32)
@@ -1204,7 +1380,18 @@ impl Iso {
         let w = |c: [u8; 4]| if fl { [WHITE; 4] } else { c };
         match o.kind {
             Ok::Wall => {
-                self.iso_box(fb, o.f0, o.f1, l0, l1, 0.0, o.h, w([LGREY, GREY, DGREY, WHITE]), ox, oy);
+                self.iso_box(
+                    fb,
+                    o.f0,
+                    o.f1,
+                    l0,
+                    l1,
+                    0.0,
+                    o.h,
+                    w([LGREY, GREY, DGREY, WHITE]),
+                    ox,
+                    oy,
+                );
                 // Warning stripes along the top.
                 for k in 0..((l1 - l0) as i32 / 4) {
                     if k % 2 == 0 {
@@ -1216,11 +1403,26 @@ impl Iso {
                 }
             }
             Ok::Tower => {
-                self.iso_box(fb, o.f0, o.f1, l0, l1, 0.0, o.h, w([LBLUE, BLUE, BLACK, CYAN]), ox, oy);
+                self.iso_box(
+                    fb,
+                    o.f0,
+                    o.f1,
+                    l0,
+                    l1,
+                    0.0,
+                    o.h,
+                    w([LBLUE, BLUE, BLACK, CYAN]),
+                    ox,
+                    oy,
+                );
                 for z in (6..o.h as i32).step_by(8) {
                     let (x, y) = self.proj(o.f0, (l0 + l1) / 2.0, z as f32);
                     let on = (self.t / 10 + z as u32) % 4 != 0;
-                    fb.set(x as i32 + ox, y as i32 + oy, if on { YELLOW } else { DGREY });
+                    fb.set(
+                        x as i32 + ox,
+                        y as i32 + oy,
+                        if on { YELLOW } else { DGREY },
+                    );
                 }
                 let (x, y) = self.proj((o.f0 + o.f1) / 2.0, (l0 + l1) / 2.0, o.h + 2.0);
                 if self.t % 40 < 20 {
@@ -1228,9 +1430,25 @@ impl Iso {
                 }
             }
             Ok::Pylon => {
-                self.iso_box(fb, o.f0, o.f1, l0, l1, -(DROP as f32) * 0.5, o.h, [PURPLE, BLUE, BLACK, LRED], ox, oy);
+                self.iso_box(
+                    fb,
+                    o.f0,
+                    o.f1,
+                    l0,
+                    l1,
+                    -(DROP as f32) * 0.5,
+                    o.h,
+                    [PURPLE, BLUE, BLACK, LRED],
+                    ox,
+                    oy,
+                );
                 let (x, y) = self.proj((o.f0 + o.f1) / 2.0, (l0 + l1) / 2.0, o.h + 3.0);
-                fb.disc(x as i32 + ox, y as i32 + oy, 2, if self.t % 16 < 8 { WHITE } else { CYAN });
+                fb.disc(
+                    x as i32 + ox,
+                    y as i32 + oy,
+                    2,
+                    if self.t % 16 < 8 { WHITE } else { CYAN },
+                );
             }
             Ok::Fence { z0, z1 } => {
                 // Crackling energy lines between the pylons.
@@ -1239,22 +1457,57 @@ impl Iso {
                 while z < z1 {
                     let (xa, ya) = self.proj(o.f0, l0, z);
                     let (xb, yb) = self.proj(o.f0, l1, z);
-                    let c = if (self.t / 2 + k) % 5 == 0 { WHITE } else if k % 2 == 0 { CYAN } else { LBLUE };
+                    let c = if (self.t / 2 + k) % 5 == 0 {
+                        WHITE
+                    } else if k % 2 == 0 {
+                        CYAN
+                    } else {
+                        LBLUE
+                    };
                     let jit = if (self.t + k * 7) % 9 == 0 { 1 } else { 0 };
-                    fb.line(xa as i32 + ox, ya as i32 + oy + jit, xb as i32 + ox, yb as i32 + oy, c);
+                    fb.line(
+                        xa as i32 + ox,
+                        ya as i32 + oy + jit,
+                        xb as i32 + ox,
+                        yb as i32 + oy,
+                        c,
+                    );
                     z += 3.0;
                     k += 1;
                 }
                 // The edges glow.
                 let (xa, ya) = self.proj(o.f0, l0, z0);
                 let (xb, yb) = self.proj(o.f0, l1, z0);
-                fb.line(xa as i32 + ox, ya as i32 + oy, xb as i32 + ox, yb as i32 + oy, WHITE);
+                fb.line(
+                    xa as i32 + ox,
+                    ya as i32 + oy,
+                    xb as i32 + ox,
+                    yb as i32 + oy,
+                    WHITE,
+                );
                 let (xa, ya) = self.proj(o.f0, l0, z1);
                 let (xb, yb) = self.proj(o.f0, l1, z1);
-                fb.line(xa as i32 + ox, ya as i32 + oy, xb as i32 + ox, yb as i32 + oy, WHITE);
+                fb.line(
+                    xa as i32 + ox,
+                    ya as i32 + oy,
+                    xb as i32 + ox,
+                    yb as i32 + oy,
+                    WHITE,
+                );
             }
             Ok::Turret => {
-                self.iso_box(fb, o.f0, o.f1, o.l0, o.l1, 0.0, o.h - 3.0, w([GREY, DGREY, BLACK, LGREY]), ox, oy);
+                self.iso_box(
+                    fb,
+                    o.f0,
+                    o.f1,
+                    o.l0,
+                    o.l1,
+                    0.0,
+                    o.h - 3.0,
+                    w([GREY, DGREY, BLACK, LGREY]),
+                    ox,
+                    oy,
+                );
                 let (cf, cl) = ((o.f0 + o.f1) / 2.0, (o.l0 + o.l1) / 2.0);
                 let (x, y) = self.proj(cf, cl, o.h - 1.0);
                 let (x, y) = (x as i32 + ox, y as i32 + oy);
@@ -1264,20 +1517,52 @@ impl Iso {
                 let (px, py) = self.proj(self.pf(), self.l, self.z);
                 let (dx, dy) = (px - x as f32, py - y as f32);
                 let d = (dx * dx + dy * dy).sqrt().max(1.0);
-                fb.line(x, y, x + (dx / d * 7.0) as i32, y + (dy / d * 7.0) as i32, LGREY);
+                fb.line(
+                    x,
+                    y,
+                    x + (dx / d * 7.0) as i32,
+                    y + (dy / d * 7.0) as i32,
+                    LGREY,
+                );
             }
             Ok::Silo(p) => {
                 let (dark, light) = p.colors();
-                self.iso_box(fb, o.f0, o.f1, o.l0, o.l1, 0.0, o.h, w([light, dark, BLACK, WHITE]), ox, oy);
+                self.iso_box(
+                    fb,
+                    o.f0,
+                    o.f1,
+                    o.l0,
+                    o.l1,
+                    0.0,
+                    o.h,
+                    w([light, dark, BLACK, WHITE]),
+                    ox,
+                    oy,
+                );
                 let (x, y) = self.proj((o.f0 + o.f1) / 2.0, (o.l0 + o.l1) / 2.0, o.h);
-                fb.char(x as i32 - 4 + ox, y as i32 - 6 + oy, p.letter(), if self.t % 20 < 10 { WHITE } else { YELLOW });
+                fb.char(
+                    x as i32 - 4 + ox,
+                    y as i32 - 6 + oy,
+                    p.letter(),
+                    if self.t % 20 < 10 { WHITE } else { YELLOW },
+                );
             }
         }
     }
 
     /// A delta-winged ship (or its shadow) seen from above at an angle.
     #[allow(clippy::too_many_arguments)]
-    fn draw_plane(&self, fb: &mut Fb, f: f32, l: f32, z: f32, ox: i32, oy: i32, shadow: bool, enemy: bool) {
+    fn draw_plane(
+        &self,
+        fb: &mut Fb,
+        f: f32,
+        l: f32,
+        z: f32,
+        ox: i32,
+        oy: i32,
+        shadow: bool,
+        enemy: bool,
+    ) {
         let p = |df: f32, dl: f32, dz: f32| {
             let (x, y) = self.proj(f + df, l + dl, z + dz);
             (x + ox as f32, y + oy as f32)
@@ -1293,7 +1578,11 @@ impl Iso {
             fb.poly(&[nose, wl, tail, wr], BLACK);
             return;
         }
-        let (c1, c2, c3) = if enemy { (LRED, RED, BROWN) } else { (WHITE, LGREY, GREY) };
+        let (c1, c2, c3) = if enemy {
+            (LRED, RED, BROWN)
+        } else {
+            (WHITE, LGREY, GREY)
+        };
         // Thickness: the underside one pixel lower.
         let d = |q: (f32, f32)| (q.0, q.1 + 1.0);
         fb.poly(&[d(nose), d(wl), d(tail), d(wr)], DGREY);
@@ -1301,10 +1590,24 @@ impl Iso {
         fb.poly(&[nose, tail, wr], c2);
         let fin0 = p(-5.0 * dir, 0.0, 0.0);
         let fin1 = p(-3.0 * dir, 0.0, 5.0);
-        fb.line(fin0.0 as i32, fin0.1 as i32, fin1.0 as i32, fin1.1 as i32, c3);
+        fb.line(
+            fin0.0 as i32,
+            fin0.1 as i32,
+            fin1.0 as i32,
+            fin1.1 as i32,
+            c3,
+        );
         let cock = p(3.0 * dir, 0.0, 1.0);
-        fb.set(cock.0 as i32, cock.1 as i32, if enemy { YELLOW } else { CYAN });
-        fb.set(cock.0 as i32 + 1, cock.1 as i32, if enemy { YELLOW } else { LBLUE });
+        fb.set(
+            cock.0 as i32,
+            cock.1 as i32,
+            if enemy { YELLOW } else { CYAN },
+        );
+        fb.set(
+            cock.0 as i32 + 1,
+            cock.1 as i32,
+            if enemy { YELLOW } else { LBLUE },
+        );
         if !enemy {
             let e = p(-5.0, 0.0, 0.0);
             let c = [YELLOW, ORANGE, WHITE][(self.t % 3) as usize];
@@ -1329,7 +1632,18 @@ impl Iso {
                 let (x, y) = (x as i32 + ox, y as i32 + oy);
                 for dy in -2i32..=2 {
                     let w = 7 - dy.abs() * 2;
-                    fb.hline(x - w, x + w, y + dy, if fl { WHITE } else if dy < 0 { LGREEN } else { GREEN });
+                    fb.hline(
+                        x - w,
+                        x + w,
+                        y + dy,
+                        if fl {
+                            WHITE
+                        } else if dy < 0 {
+                            LGREEN
+                        } else {
+                            GREEN
+                        },
+                    );
                 }
                 fb.disc(x, y - 3, 2, if fl { WHITE } else { CYAN });
                 let k = (self.t / 4 + a.base as u32) % 4;
@@ -1340,10 +1654,22 @@ impl Iso {
                 let (x, y) = (x as i32 + ox, y as i32 + oy);
                 let c = if fl { WHITE } else { CYAN };
                 fb.poly(
-                    &[(x as f32, y as f32 - 9.0), (x as f32 + 5.0, y as f32), (x as f32, y as f32 + 7.0), (x as f32 - 5.0, y as f32)],
+                    &[
+                        (x as f32, y as f32 - 9.0),
+                        (x as f32 + 5.0, y as f32),
+                        (x as f32, y as f32 + 7.0),
+                        (x as f32 - 5.0, y as f32),
+                    ],
                     c,
                 );
-                fb.poly(&[(x as f32, y as f32 - 9.0), (x as f32 + 5.0, y as f32), (x as f32, y as f32 + 7.0)], if fl { WHITE } else { LBLUE });
+                fb.poly(
+                    &[
+                        (x as f32, y as f32 - 9.0),
+                        (x as f32 + 5.0, y as f32),
+                        (x as f32, y as f32 + 7.0),
+                    ],
+                    if fl { WHITE } else { LBLUE },
+                );
                 fb.line(x, y - 9, x, y + 7, WHITE);
             }
         }
@@ -1355,19 +1681,61 @@ impl Iso {
         };
         let bf = self.cam + 210.0;
         let (f0, l0) = (bf - 12.0, b.l - 12.0);
-        let shake = if b.dying > 0 { ((b.dying % 4) as i32 - 2) as f32 } else { 0.0 };
+        let shake = if b.dying > 0 {
+            ((b.dying % 4) as i32 - 2) as f32
+        } else {
+            0.0
+        };
         let fl = b.flash > 0 && b.flash % 2 == 0;
-        let cols = if fl { [WHITE; 4] } else { [CYAN, LBLUE, BLUE, WHITE] };
+        let cols = if fl {
+            [WHITE; 4]
+        } else {
+            [CYAN, LBLUE, BLUE, WHITE]
+        };
         // A tall crystal: three stacked boxes tapering upwards.
-        self.iso_box(fb, f0, f0 + 24.0, l0 + shake, l0 + 24.0 + shake, 0.0, 22.0, [LGREY, GREY, DGREY, WHITE], ox, oy);
-        self.iso_box(fb, f0 + 3.0, f0 + 21.0, l0 + 3.0, l0 + 21.0, 22.0, 52.0, cols, ox, oy);
-        self.iso_box(fb, f0 + 7.0, f0 + 17.0, l0 + 7.0, l0 + 17.0, 52.0, 66.0, [WHITE, CYAN, LBLUE, WHITE], ox, oy);
+        self.iso_box(
+            fb,
+            f0,
+            f0 + 24.0,
+            l0 + shake,
+            l0 + 24.0 + shake,
+            0.0,
+            22.0,
+            [LGREY, GREY, DGREY, WHITE],
+            ox,
+            oy,
+        );
+        self.iso_box(
+            fb,
+            f0 + 3.0,
+            f0 + 21.0,
+            l0 + 3.0,
+            l0 + 21.0,
+            22.0,
+            52.0,
+            cols,
+            ox,
+            oy,
+        );
+        self.iso_box(
+            fb,
+            f0 + 7.0,
+            f0 + 17.0,
+            l0 + 7.0,
+            l0 + 17.0,
+            52.0,
+            66.0,
+            [WHITE, CYAN, LBLUE, WHITE],
+            ox,
+            oy,
+        );
         // The core window on the front face.
         let open = !self.air.iter().any(|a| a.kind == Ak::Shard);
         let (x, y) = self.proj(f0 + 3.0, b.l + 2.0, 30.0);
         let (x, y) = (x as i32 + ox, y as i32 + oy);
         if open {
-            let c = [RED, LRED, ORANGE, YELLOW, WHITE, YELLOW, ORANGE, LRED][((self.t / 3) % 8) as usize];
+            let c = [RED, LRED, ORANGE, YELLOW, WHITE, YELLOW, ORANGE, LRED]
+                [((self.t / 3) % 8) as usize];
             fb.disc(x, y, 6, BLACK);
             fb.disc(x, y, 4, c);
         } else {

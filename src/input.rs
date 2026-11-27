@@ -106,10 +106,6 @@ impl Controls {
         self.kb.held = [false; 8];
     }
 
-    pub fn joystick_name(&self) -> Option<&str> {
-        self.joy.name.as_deref()
-    }
-
     /// The state for this frame (call once per frame).
     pub fn frame(&mut self) -> Input {
         self.joy.poll();

@@ -156,7 +156,12 @@ impl Config {
     pub fn from_map(m: &HashMap<String, String>) -> Config {
         let mut c = Config::default();
         let b = |k: &str, d: bool| m.get(k).map(|v| v == "true").unwrap_or(d);
-        let n = |k: &str, d: u8| m.get(k).and_then(|v| v.parse::<u8>().ok()).unwrap_or(d).min(10);
+        let n = |k: &str, d: u8| {
+            m.get(k)
+                .and_then(|v| v.parse::<u8>().ok())
+                .unwrap_or(d)
+                .min(10)
+        };
         c.fullscreen = b("fullscreen", c.fullscreen);
         c.crt = b("crt", c.crt);
         c.echo = b("echo", c.echo);
@@ -222,7 +227,9 @@ pub const MAX_SCORES: usize = 10;
 
 impl Default for Save {
     fn default() -> Self {
-        let names = ["NRX", "SID", "VIC", "CIA", "ACE", "MAX", "ZAP", "JET", "ION", "RUN"];
+        let names = [
+            "NRX", "SID", "VIC", "CIA", "ACE", "MAX", "ZAP", "JET", "ION", "RUN",
+        ];
         let scores = names
             .iter()
             .enumerate()
@@ -254,7 +261,10 @@ impl Save {
         let mut s = Save::default();
         let m = parse_toml(t);
         for (i, k) in ["easy", "normal", "hard"].iter().enumerate() {
-            if let Some(v) = m.get(&format!("reached.{k}")).and_then(|v| v.parse::<u8>().ok()) {
+            if let Some(v) = m
+                .get(&format!("reached.{k}"))
+                .and_then(|v| v.parse::<u8>().ok())
+            {
                 s.reached[i] = v.clamp(1, crate::game::LEVELS as u8);
             }
         }
@@ -281,7 +291,7 @@ impl Save {
             }
         }
         if !scores.is_empty() {
-            scores.sort_by(|a, b| b.score.cmp(&a.score));
+            scores.sort_by_key(|s| std::cmp::Reverse(s.score));
             s.scores = scores;
         }
         s
@@ -407,7 +417,9 @@ pub fn theme_colors(root_theme: Option<&str>) -> [u32; 3] {
     // Light themes have dark text; the game is drawn on black, so use
     // the accent's brightness for readability.
     let lum = |c: u32| {
-        0.2126 * ((c >> 16) & 255) as f32 + 0.7152 * ((c >> 8) & 255) as f32 + 0.0722 * (c & 255) as f32
+        0.2126 * ((c >> 16) & 255) as f32
+            + 0.7152 * ((c >> 8) & 255) as f32
+            + 0.0722 * (c & 255) as f32
     };
     if lum(fg) < 110.0 {
         fg = 0xe8e8e8;
@@ -427,10 +439,12 @@ mod tests {
         assert_eq!(m["a"], "1");
         assert_eq!(m["x.b"], "hi # there");
         assert_eq!(m["x.c"], "true");
-        let mut c = Config::default();
-        c.crt = false;
-        c.music = 3;
-        c.difficulty = Difficulty::Hard;
+        let c = Config {
+            crt: false,
+            music: 3,
+            difficulty: Difficulty::Hard,
+            ..Config::default()
+        };
         assert_eq!(Config::from_map(&parse_toml(&c.to_toml())), c);
         let mut s = Save::default();
         s.reach(Difficulty::Easy, 3);

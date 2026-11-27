@@ -114,7 +114,13 @@ impl Video {
                 ),
         )?;
         let class = b"nirux-thegame\0nirux-thegame\0";
-        c.change_property8(PropMode::REPLACE, win, AtomEnum::WM_CLASS, AtomEnum::STRING, class)?;
+        c.change_property8(
+            PropMode::REPLACE,
+            win,
+            AtomEnum::WM_CLASS,
+            AtomEnum::STRING,
+            class,
+        )?;
         c.change_property32(PropMode::REPLACE, win, a[0], AtomEnum::ATOM, &[a[1]])?;
         c.change_property32(
             PropMode::REPLACE,
@@ -125,7 +131,13 @@ impl Video {
         )?;
         let title = b"NIRUX";
         c.change_property8(PropMode::REPLACE, win, a[2], a[3], title)?;
-        c.change_property8(PropMode::REPLACE, win, AtomEnum::WM_NAME, AtomEnum::STRING, title)?;
+        c.change_property8(
+            PropMode::REPLACE,
+            win,
+            AtomEnum::WM_NAME,
+            AtomEnum::STRING,
+            title,
+        )?;
         c.change_property32(PropMode::REPLACE, win, a[8], AtomEnum::CARDINAL, &icon())?;
         if fullscreen && has_wm {
             c.change_property32(PropMode::REPLACE, win, a[4], AtomEnum::ATOM, &[a[5]])?;
@@ -254,9 +266,9 @@ impl Video {
                 }
                 Event::FocusIn(_) => out.push(Ev::Focus(true)),
                 Event::FocusOut(_) => out.push(Ev::Focus(false)),
-                Event::VisibilityNotify(v) => out.push(Ev::Visible(
-                    v.state != Visibility::FULLY_OBSCURED,
-                )),
+                Event::VisibilityNotify(v) => {
+                    out.push(Ev::Visible(v.state != Visibility::FULLY_OBSCURED))
+                }
                 Event::UnmapNotify(_) => out.push(Ev::Visible(false)),
                 Event::MapNotify(_) => out.push(Ev::Visible(true)),
                 _ => {}
@@ -325,10 +337,15 @@ impl Video {
             self.win,
             &ChangeWindowAttributesAux::new().background_pixel(rgb),
         )?;
-        let (w, h) = (self.w as u16, self.h as u16);
+        let w = self.w as u16;
         let strips = [
             (0, 0, w, lay.y as u16),
-            (0, (lay.y + lay.h) as i16, w, (self.h - lay.y - lay.h).max(0) as u16),
+            (
+                0,
+                (lay.y + lay.h) as i16,
+                w,
+                (self.h - lay.y - lay.h).max(0) as u16,
+            ),
             (0, lay.y as i16, lay.x as u16, lay.h as u16),
             (
                 (lay.x + lay.w) as i16,
@@ -383,9 +400,8 @@ impl Video {
             }
             scale::upscale(&fb.px, lut, lay.scale, crt, &mut self.scratch[..n]);
             // SAFETY: plain u32 pixels viewed as bytes.
-            let bytes = unsafe {
-                std::slice::from_raw_parts(self.scratch.as_ptr() as *const u8, n * 4)
-            };
+            let bytes =
+                unsafe { std::slice::from_raw_parts(self.scratch.as_ptr() as *const u8, n * 4) };
             let max = self.c.maximum_request_bytes().saturating_sub(64).max(4096);
             let row = lay.w as usize * 4;
             let rows = (max / row).max(1);
@@ -425,13 +441,25 @@ fn icon() -> Vec<u32> {
     let mut v = vec![32u32, 32];
     for y in 0..32 {
         for x in 0..32 {
-            let band = [0x352879u32, 0x6c5eb5, 0x70a4b2, 0xffffff, 0x70a4b2, 0x6c5eb5, 0x352879];
+            let band = [
+                0x352879u32,
+                0x6c5eb5,
+                0x70a4b2,
+                0xffffff,
+                0x70a4b2,
+                0x6c5eb5,
+                0x352879,
+            ];
             let bg = if (12..19).contains(&y) {
                 band[(y - 12) as usize]
             } else {
                 0x000000
             };
-            let c = art[y as usize].as_bytes().get(x as usize).copied().unwrap_or(b'.');
+            let c = art[y as usize]
+                .as_bytes()
+                .get(x as usize)
+                .copied()
+                .unwrap_or(b'.');
             let px = match c {
                 b'.' => bg,
                 d => {

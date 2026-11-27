@@ -90,10 +90,6 @@ impl Engine {
         }
     }
 
-    pub fn music_done(&self) -> bool {
-        self.player.as_ref().is_none_or(|p| p.done)
-    }
-
     /// Interleaved stereo, any length.
     pub fn render(&mut self, out: &mut [f32]) {
         let mut pos = 0;
@@ -119,16 +115,12 @@ impl Engine {
 
 pub struct Audio {
     tx: Option<Sender<Cmd>>,
-    pub name: String,
 }
 
 impl Audio {
     /// No sound at all (tests, `--selftest`, no audio program).
     pub fn none() -> Audio {
-        Audio {
-            tx: None,
-            name: "none".into(),
-        }
+        Audio { tx: None }
     }
 
     pub fn start(custom: &str) -> Audio {
@@ -140,7 +132,9 @@ impl Audio {
                 return Audio::none();
             }
         };
-        let name = sink.name.clone();
+        if std::env::var_os("NIRUX_DEBUG").is_some() {
+            eprintln!("nirux-thegame: sound through {}", sink.name);
+        }
         let (tx, rx) = channel();
         let custom = custom.to_string();
         let spawned = std::thread::Builder::new()
@@ -149,7 +143,7 @@ impl Audio {
         if spawned.is_err() {
             return Audio::none();
         }
-        Audio { tx: Some(tx), name }
+        Audio { tx: Some(tx) }
     }
 
     pub fn send(&self, c: Cmd) {
@@ -195,7 +189,11 @@ fn run(mut sink: Sink, rx: Receiver<Cmd>, custom: &str) {
 }
 
 /// Render a song to a 16-bit stereo WAV file. Returns (peak, rms, seconds).
-pub fn render_wav(id: SongId, path: &str, seconds: Option<f32>) -> std::io::Result<(f32, f32, f32)> {
+pub fn render_wav(
+    id: SongId,
+    path: &str,
+    seconds: Option<f32>,
+) -> std::io::Result<(f32, f32, f32)> {
     let mut eng = Engine::new();
     eng.handle(Cmd::Music(Some(id)));
     let song_len = songs::build(id).seconds();

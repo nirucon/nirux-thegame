@@ -41,30 +41,6 @@ impl Sprite {
         Sprite { w, h, px }
     }
 
-    /// The same picture mirrored left to right.
-    pub fn flipped(&self) -> Sprite {
-        let mut px = self.px.clone();
-        for y in 0..self.h as usize {
-            px[y * self.w as usize..(y + 1) * self.w as usize].reverse();
-        }
-        Sprite {
-            w: self.w,
-            h: self.h,
-            px,
-        }
-    }
-
-    /// Every pixel recoloured through `map` (index -> index).
-    pub fn recolor(&self, map: &[(u8, u8)]) -> Sprite {
-        let mut s = self.clone();
-        for p in s.px.iter_mut() {
-            if let Some((_, to)) = map.iter().find(|(f, _)| f == p) {
-                *p = *to;
-            }
-        }
-        s
-    }
-
     /// Nearest-neighbour doubled in both directions.
     pub fn doubled(&self) -> Sprite {
         let (w, h) = (self.w * 2, self.h * 2);
@@ -102,15 +78,6 @@ impl Fb {
         }
     }
 
-    #[inline]
-    pub fn get(&self, x: i32, y: i32) -> u8 {
-        if (x as u32) < W as u32 && (y as u32) < H as u32 {
-            self.px[(y * W + x) as usize]
-        } else {
-            0
-        }
-    }
-
     pub fn hline(&mut self, x0: i32, x1: i32, y: i32, c: u8) {
         if !(0..H).contains(&y) {
             return;
@@ -136,15 +103,6 @@ impl Fb {
         for yy in y..y + h {
             self.set(x, yy, c);
             self.set(x + w - 1, yy, c);
-        }
-    }
-
-    /// A checkerboard of two colours (C64 style dithering).
-    pub fn dither(&mut self, x: i32, y: i32, w: i32, h: i32, a: u8, b: u8) {
-        for yy in y.max(0)..(y + h).min(H) {
-            for xx in x.max(0)..(x + w).min(W) {
-                self.px[(yy * W + xx) as usize] = if (xx + yy) & 1 == 0 { a } else { b };
-            }
         }
     }
 
@@ -203,7 +161,16 @@ impl Fb {
         }
         let (mut x, mut y, mut d) = (r, 0, 1 - r);
         while x >= y {
-            for (a, b) in [(x, y), (y, x), (-y, x), (-x, y), (-x, -y), (-y, -x), (y, -x), (x, -y)] {
+            for (a, b) in [
+                (x, y),
+                (y, x),
+                (-y, x),
+                (-x, y),
+                (-x, -y),
+                (-y, -x),
+                (y, -x),
+                (x, -y),
+            ] {
                 self.set(cx + a, cy + b, c);
             }
             y += 1;
@@ -364,7 +331,6 @@ mod tests {
         let s = Sprite::parse(&["1.2", "..f"]);
         assert_eq!((s.w, s.h), (3, 2));
         assert_eq!(s.px[1], CLEAR);
-        assert_eq!(s.flipped().px[0], 2);
         fb.blit(&s, 318, 199);
         assert_eq!(fb.text(0, 0, "AB", 1), 16);
     }

@@ -30,31 +30,133 @@ enum Ev {
 /// The sector, second by second (60 frames each).
 const SCRIPT: &[(u32, Ev)] = &[
     (90, Ev::Text("WELCOME TO THE OUTER RIM")),
-    (150, Ev::Wisps { y: 70.0, n: 5, amp: 18.0, fire: false }),
-    (400, Ev::Wisps { y: 140.0, n: 5, amp: 18.0, fire: false }),
-    (640, Ev::Pod { y: 105.0, drop: PowerUp::Weapon }),
-    (820, Ev::Wisps { y: 100.0, n: 7, amp: 40.0, fire: false }),
+    (
+        150,
+        Ev::Wisps {
+            y: 70.0,
+            n: 5,
+            amp: 18.0,
+            fire: false,
+        },
+    ),
+    (
+        400,
+        Ev::Wisps {
+            y: 140.0,
+            n: 5,
+            amp: 18.0,
+            fire: false,
+        },
+    ),
+    (
+        640,
+        Ev::Pod {
+            y: 105.0,
+            drop: PowerUp::Weapon,
+        },
+    ),
+    (
+        820,
+        Ev::Wisps {
+            y: 100.0,
+            n: 7,
+            amp: 40.0,
+            fire: false,
+        },
+    ),
     (1080, Ev::Hornets { top: true, n: 3 }),
     (1260, Ev::Hornets { top: false, n: 3 }),
-    (1450, Ev::Wisps { y: 60.0, n: 6, amp: 25.0, fire: true }),
-    (1500, Ev::Wisps { y: 150.0, n: 6, amp: 25.0, fire: true }),
+    (
+        1450,
+        Ev::Wisps {
+            y: 60.0,
+            n: 6,
+            amp: 25.0,
+            fire: true,
+        },
+    ),
+    (
+        1500,
+        Ev::Wisps {
+            y: 150.0,
+            n: 6,
+            amp: 25.0,
+            fire: true,
+        },
+    ),
     (1750, Ev::Darts { n: 3 }),
     (1950, Ev::Text("ASTEROID FIELD AHEAD")),
     (2050, Ev::Rocks { frames: 1100 }),
-    (2500, Ev::Pod { y: 70.0, drop: PowerUp::Shield }),
-    (2900, Ev::Pod { y: 140.0, drop: PowerUp::Weapon }),
+    (
+        2500,
+        Ev::Pod {
+            y: 70.0,
+            drop: PowerUp::Shield,
+        },
+    ),
+    (
+        2900,
+        Ev::Pod {
+            y: 140.0,
+            drop: PowerUp::Weapon,
+        },
+    ),
     (3250, Ev::Hornets { top: true, n: 4 }),
-    (3420, Ev::Wisps { y: 90.0, n: 8, amp: 50.0, fire: true }),
+    (
+        3420,
+        Ev::Wisps {
+            y: 90.0,
+            n: 8,
+            amp: 50.0,
+            fire: true,
+        },
+    ),
     (3700, Ev::Text("CAPITAL SHIP ON RADAR")),
     (3800, Ev::Capital),
-    (4300, Ev::Wisps { y: 50.0, n: 5, amp: 12.0, fire: true }),
+    (
+        4300,
+        Ev::Wisps {
+            y: 50.0,
+            n: 5,
+            amp: 12.0,
+            fire: true,
+        },
+    ),
     (4900, Ev::Darts { n: 3 }),
-    (5400, Ev::Pod { y: 60.0, drop: PowerUp::Bomb }),
+    (
+        5400,
+        Ev::Pod {
+            y: 60.0,
+            drop: PowerUp::Bomb,
+        },
+    ),
     (5500, Ev::Hornets { top: true, n: 4 }),
-    (6300, Ev::Wisps { y: 70.0, n: 7, amp: 30.0, fire: true }),
-    (6450, Ev::Wisps { y: 130.0, n: 7, amp: 30.0, fire: true }),
+    (
+        6300,
+        Ev::Wisps {
+            y: 70.0,
+            n: 7,
+            amp: 30.0,
+            fire: true,
+        },
+    ),
+    (
+        6450,
+        Ev::Wisps {
+            y: 130.0,
+            n: 7,
+            amp: 30.0,
+            fire: true,
+        },
+    ),
     (6650, Ev::Darts { n: 5 }),
-    (6900, Ev::Pod { y: 100.0, drop: PowerUp::Weapon }),
+    (
+        6900,
+        Ev::Pod {
+            y: 100.0,
+            drop: PowerUp::Weapon,
+        },
+    ),
     (7000, Ev::Hornets { top: false, n: 5 }),
     (7300, Ev::Text("WARNING: THE WARDEN APPROACHES")),
     (7500, Ev::Boss),
@@ -338,7 +440,9 @@ impl Side {
             Ev::Rocks { frames } => self.rocks_until = self.t + frames,
             Ev::Capital => {
                 let x = W as f32 + 10.0;
-                for u in [240.0, 380.0, 610.0, 660.0, 760.0, 900.0, 1000.0, 1130.0, 1340.0, 1450.0] {
+                for u in [
+                    240.0, 380.0, 610.0, 660.0, 760.0, 900.0, 1000.0, 1130.0, 1340.0, 1450.0,
+                ] {
                     let top = cap_top(u).unwrap_or(128.0);
                     let mut e = Enemy::new(Ek::Turret { u }, x + u, top - 4.0, 5);
                     e.cd = 60 + self.rng.below(100) as i32;
@@ -364,8 +468,16 @@ impl Side {
                     y: 105.0,
                     t: 0,
                     parts: [
-                        BossPart { hp, max: hp, flash: 0 },
-                        BossPart { hp, max: hp, flash: 0 },
+                        BossPart {
+                            hp,
+                            max: hp,
+                            flash: 0,
+                        },
+                        BossPart {
+                            hp,
+                            max: hp,
+                            flash: 0,
+                        },
                         BossPart {
                             hp: 75,
                             max: 75,
@@ -440,7 +552,11 @@ impl Side {
                 add(2.0, 1.1, false);
             }
         }
-        out.play(if st.weapon >= 4 { Sfx::Laser2 } else { Sfx::Laser });
+        out.play(if st.weapon >= 4 {
+            Sfx::Laser2
+        } else {
+            Sfx::Laser
+        });
         self.fire_cd = match st.weapon {
             1 => 9,
             2 | 3 => 8,
@@ -489,7 +605,11 @@ impl Side {
         let drop = e.drop;
         let group = e.group;
         self.fx.explode(x, y, size);
-        out.play(if size >= 2.0 { Sfx::ExplodeBig } else { Sfx::ExplodeSmall });
+        out.play(if size >= 2.0 {
+            Sfx::ExplodeBig
+        } else {
+            Sfx::ExplodeSmall
+        });
         if st.add(pts) {
             out.play(Sfx::ExtraLife);
             self.fx.text(x, y - 12.0, "1UP".into(), LGREEN);
@@ -497,7 +617,12 @@ impl Side {
         st.kills += 1;
         self.fx.text(x, y - 4.0, pts.to_string(), YELLOW);
         if let Some(d) = drop {
-            self.pickups.push(Pickup { x, y, kind: d, t: 0 });
+            self.pickups.push(Pickup {
+                x,
+                y,
+                kind: d,
+                t: 0,
+            });
         }
         if let Ek::Rock { big: true } = kind {
             for k in 0..2 {
@@ -608,7 +733,11 @@ impl Side {
                 for i in 0..2 {
                     if b.parts[i].hp > 0 && (b.t + i as u32 * period / 2) % period == 0 {
                         let (cx, cy) = b.cannon_pos(i);
-                        let spread = if self.diff == Difficulty::Easy { 0.0 } else { 0.25 };
+                        let spread = if self.diff == Difficulty::Easy {
+                            0.0
+                        } else {
+                            0.25
+                        };
                         self.aimed(cx - 12.0, cy, 2.2, 0.0);
                         if spread > 0.0 {
                             self.aimed(cx - 12.0, cy, 2.2, spread);
@@ -619,7 +748,8 @@ impl Side {
                 }
                 if b.t % 300 == 150 {
                     for k in 0..2 {
-                        let mut e = Enemy::new(Ek::Dart, b.x, b.y + if k == 0 { -40.0 } else { 40.0 }, 2);
+                        let mut e =
+                            Enemy::new(Ek::Dart, b.x, b.y + if k == 0 { -40.0 } else { 40.0 }, 2);
                         e.vx = -2.4;
                         self.enemies.push(e);
                     }
@@ -629,7 +759,11 @@ impl Side {
                 let period = (95.0 / agg) as u32;
                 let (cx, cy) = b.core_pos();
                 if b.t % period == 0 {
-                    let n = if self.diff == Difficulty::Hard { 14 } else { 10 };
+                    let n = if self.diff == Difficulty::Hard {
+                        14
+                    } else {
+                        10
+                    };
                     self.ring(cx, cy, n, 1.5 * (0.8 + 0.2 * agg), b.spin);
                     out.play(Sfx::EnemyShot);
                 }
@@ -733,9 +867,7 @@ impl Side {
                     DGREY
                 } else {
                     let band = (y - oy) / 12;
-                    if band % 2 == 0 {
-                        DGREY
-                    } else if (sx + y) & 1 == 0 {
+                    if band % 2 == 0 || (sx + y) & 1 == 0 {
                         DGREY
                     } else {
                         GREY
@@ -751,7 +883,7 @@ impl Side {
                     if tower && r > 6 && ui % 6 < 2 && (y - oy) % 8 == 3 {
                         let on = hash(ui / 6, (y - oy) / 8) % 5 != 0;
                         col = if on {
-                            if (hash(ui, y) as u32 + self.t / 40) % 17 == 0 {
+                            if (hash(ui, y) + self.t / 40) % 17 == 0 {
                                 WHITE
                             } else {
                                 YELLOW
@@ -768,13 +900,18 @@ impl Side {
                         };
                     }
                     if (y - oy) > 176 && (y - oy) < 182 && ui % 40 < 30 {
-                        col = if ((ui / 4) + (y - oy)) % 2 == 0 { YELLOW } else { BLACK };
+                        col = if ((ui / 4) + (y - oy)) % 2 == 0 {
+                            YELLOW
+                        } else {
+                            BLACK
+                        };
                     }
                 }
                 // Scorched hull around destroyed generators.
                 for &bu in &c.burning {
                     let dx = (u - bu).abs();
-                    if dx < 40.0 && r > 1 && r < 30 && hash(ui, y) % 3 == 0 && dx < 40.0 - r as f32 {
+                    if dx < 40.0 && r > 1 && r < 30 && hash(ui, y) % 3 == 0 && dx < 40.0 - r as f32
+                    {
                         col = if hash(ui, y) % 7 == 0 { RED } else { BLACK };
                     }
                 }
@@ -821,8 +958,13 @@ impl Side {
                 fb.circle(x, y, 9, if flash { WHITE } else { LRED });
                 let k = e.t as f32 * 0.08;
                 for i in 0..4 {
-                    let an = k + i as f32 * 1.5708;
-                    fb.disc(x + (an.cos() * 6.0) as i32, y + (an.sin() * 6.0) as i32, 1, LGREY);
+                    let an = k + i as f32 * std::f32::consts::FRAC_PI_2;
+                    fb.disc(
+                        x + (an.cos() * 6.0) as i32,
+                        y + (an.sin() * 6.0) as i32,
+                        1,
+                        LGREY,
+                    );
                 }
                 let core = [RED, LRED, YELLOW, WHITE, YELLOW, LRED][((e.t / 4) % 6) as usize];
                 fb.disc(x, y, 3, core);
@@ -843,8 +985,16 @@ impl Side {
                 fb.hline(x - 4, x + 2, y - 2, LGREY);
                 let (dx, dy) = (e.aim.cos(), e.aim.sin());
                 for i in 3..11 {
-                    fb.set(x + (dx * i as f32) as i32, y + (dy * i as f32) as i32, LGREY);
-                    fb.set(x + (dx * i as f32) as i32, y + 1 + (dy * i as f32) as i32, DGREY);
+                    fb.set(
+                        x + (dx * i as f32) as i32,
+                        y + (dy * i as f32) as i32,
+                        LGREY,
+                    );
+                    fb.set(
+                        x + (dx * i as f32) as i32,
+                        y + 1 + (dy * i as f32) as i32,
+                        DGREY,
+                    );
                 }
                 if e.cd < 12 {
                     fb.set(x + (dx * 11.0) as i32, y + (dy * 11.0) as i32, YELLOW);
@@ -910,8 +1060,9 @@ impl Side {
         for k in [-26, -8, 8, 26] {
             let len = 6 + ((b.t as i32 + k) % 4);
             for i in 0..len {
-                let c = [WHITE, YELLOW, ORANGE, RED, BROWN, BROWN, BROWN, BROWN, BROWN, BROWN]
-                    [i as usize];
+                let c = [
+                    WHITE, YELLOW, ORANGE, RED, BROWN, BROWN, BROWN, BROWN, BROWN, BROWN,
+                ][i as usize];
                 fb.set(x as i32 + 52 + i, y as i32 + k, c);
                 fb.set(x as i32 + 52 + i, y as i32 + k + 1, c);
             }
@@ -969,7 +1120,7 @@ impl Level for Side {
             self.script += 1;
             self.spawn(ev);
         }
-        if self.boss_started && self.t % 1 == 0 && out.music.is_none() {
+        if self.boss_started && out.music.is_none() {
             if let Some(b) = &self.boss {
                 if b.t == 1 {
                     out.music = Some(SongId::Boss);
@@ -981,12 +1132,18 @@ impl Level for Side {
         if self.t < self.rocks_until && self.t % 26 == 0 {
             let big = self.rng.chance(0.35);
             let y = self.rng.range(TOP + 10.0, BOTTOM - 10.0);
-            let mut r = Enemy::new(Ek::Rock { big }, W as f32 + 20.0, y, if big { 6 } else { 2 });
+            let mut r = Enemy::new(
+                Ek::Rock { big },
+                W as f32 + 20.0,
+                y,
+                if big { 6 } else { 2 },
+            );
             r.vx = -self.rng.range(0.8, 1.8);
             r.vy = self.rng.s() * 0.4;
             self.enemies.push(r);
         }
-        self.stars.update(if self.boss.is_some() { 1.6 } else { 1.2 }, 0.0);
+        self.stars
+            .update(if self.boss.is_some() { 1.6 } else { 1.2 }, 0.0);
         self.planet_x -= 0.04;
         // The player.
         if self.dead > 0 {
@@ -1009,10 +1166,20 @@ impl Level for Side {
         } else {
             let sp = 1.7;
             let (dx, dy) = (inp.dx(), inp.dy());
-            let k = if dx != 0.0 && dy != 0.0 { 0.7071 } else { 1.0 };
+            let k = if dx != 0.0 && dy != 0.0 {
+                std::f32::consts::FRAC_1_SQRT_2
+            } else {
+                1.0
+            };
             self.px = (self.px + dx * sp * k).clamp(14.0, W as f32 - 20.0);
             self.py = (self.py + dy * sp * k).clamp(TOP, BOTTOM);
-            self.thrust = if dx > 0.0 { 2.0 } else if dx < 0.0 { 0.0 } else { 1.0 };
+            self.thrust = if dx > 0.0 {
+                2.0
+            } else if dx < 0.0 {
+                0.0
+            } else {
+                1.0
+            };
             if self.fire_cd > 0 {
                 self.fire_cd -= 1;
             }
@@ -1104,7 +1271,15 @@ impl Level for Side {
                     }
                     if let Ek::Turret { .. } = e.kind {
                         let want = (py - e.y).atan2(px - e.x);
-                        let want = if want > 0.2 { if px < e.x { -2.9 } else { -0.2 } } else { want };
+                        let want = if want > 0.2 {
+                            if px < e.x {
+                                -2.9
+                            } else {
+                                -0.2
+                            }
+                        } else {
+                            want
+                        };
                         e.aim += (want - e.aim).clamp(-0.05, 0.05);
                     }
                 }
@@ -1125,7 +1300,15 @@ impl Level for Side {
                     };
                     e.cd = (base / self.agg) as i32 + self.rng.below(40) as i32;
                     if e.x > px + 20.0 || matches!(e.kind, Ek::Turret { .. }) {
-                        fire_from.push((e.x, e.y, if let Ek::Turret { .. } = e.kind { e.aim } else { 9.0 }));
+                        fire_from.push((
+                            e.x,
+                            e.y,
+                            if let Ek::Turret { .. } = e.kind {
+                                e.aim
+                            } else {
+                                9.0
+                            },
+                        ));
                     }
                 }
             }
@@ -1170,7 +1353,13 @@ impl Level for Side {
             !self.hit_boss(s.x, s.y, st, out)
         });
         self.shots = shots;
-        self.enemies.retain(|e| e.hp > 0 && e.x > -60.0 && e.x < W as f32 + 1600.0 && e.y > -40.0 && e.y < H as f32 + 40.0);
+        self.enemies.retain(|e| {
+            e.hp > 0
+                && e.x > -60.0
+                && e.x < W as f32 + 1600.0
+                && e.y > -40.0
+                && e.y < H as f32 + 40.0
+        });
         for g in self.groups.iter_mut() {
             let _ = g;
         }
@@ -1276,7 +1465,11 @@ impl Level for Side {
             for k in 0..24 {
                 let a = k as f32 * 0.2618 + self.t as f32 * 0.05;
                 let c = if k % 3 == 0 { WHITE } else { CYAN };
-                fb.set(self.px as i32 + (a.cos() * r as f32) as i32, self.py as i32 + (a.sin() * r as f32 * 0.7) as i32, c);
+                fb.set(
+                    self.px as i32 + (a.cos() * r as f32) as i32,
+                    self.py as i32 + (a.sin() * r as f32 * 0.7) as i32,
+                    c,
+                );
             }
         }
         for s in &self.eshots {
@@ -1290,7 +1483,11 @@ impl Level for Side {
             }
         }
         if self.fx.flash > 0 {
-            let map = if self.fx.flash > 4 { [1u8; 16] } else { [1, 1, 7, 1, 1, 7, 15, 1, 7, 7, 1, 15, 1, 1, 1, 1] };
+            let map = if self.fx.flash > 4 {
+                [1u8; 16]
+            } else {
+                [1, 1, 7, 1, 1, 7, 15, 1, 7, 7, 1, 15, 1, 1, 1, 1]
+            };
             fb.remap(0, HUD_H, W, H - HUD_H, &map);
         }
         draw_hud(fb, st, hi, LBLUE);
@@ -1340,7 +1537,9 @@ impl Level for Side {
             }
         }
         for e in &self.enemies {
-            if !matches!(e.kind, Ek::Turret { .. } | Ek::Generator { .. }) && d2(e.x, e.y, px, py) < 900.0 {
+            if !matches!(e.kind, Ek::Turret { .. } | Ek::Generator { .. })
+                && d2(e.x, e.y, px, py) < 900.0
+            {
                 dodge += if e.y > py { -1.5 } else { 1.5 };
             }
         }
@@ -1362,10 +1561,6 @@ impl Level for Side {
         BLUE
     }
 
-    fn boss_active(&self) -> bool {
-        self.boss.is_some()
-    }
-
     fn progress(&self) -> f32 {
         (self.t as f32 / 7500.0).min(1.0)
     }
@@ -1379,7 +1574,17 @@ impl Level for Side {
                 b.y,
                 b.dying
             ),
-            None => format!("enemies {} shots {}", self.enemies.len(), self.eshots.len()),
+            None => format!(
+                "enemies {} shots {} player {:.0},{:.0} pickups {:?}",
+                self.enemies.len(),
+                self.eshots.len(),
+                self.px,
+                self.py,
+                self.pickups
+                    .iter()
+                    .map(|p| (p.x as i32, p.y as i32))
+                    .collect::<Vec<_>>()
+            ),
         }
     }
 }
@@ -1394,7 +1599,15 @@ fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32) {
                 continue;
             }
             let (px, py) = (cx + x as i32, cy + (y + x * 0.18) as i32);
-            fb.set(px, py, if x.abs() > r as f32 * 1.4 { DGREY } else { GREY });
+            fb.set(
+                px,
+                py,
+                if x.abs() > r as f32 * 1.4 {
+                    DGREY
+                } else {
+                    GREY
+                },
+            );
             if k % 2 == 0 {
                 fb.set(px, py + 1, DGREY);
             }
@@ -1408,16 +1621,25 @@ fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32) {
                 continue;
             }
             // Light from the upper left: 0 is lit, 1 is dark.
-            let l = ((x + y) as f32 / (r as f32 * 1.5) + 0.35 + d2 as f32 / (r * r * 4) as f32).clamp(0.0, 1.2);
+            let l = ((x + y) as f32 / (r as f32 * 1.5) + 0.35 + d2 as f32 / (r * r * 4) as f32)
+                .clamp(0.0, 1.2);
             let dith = (x + y) & 1 == 0;
             let c = if l < 0.25 {
                 LBLUE
             } else if l < 0.4 {
-                if dith { LBLUE } else { BLUE }
+                if dith {
+                    LBLUE
+                } else {
+                    BLUE
+                }
             } else if l < 0.7 {
                 BLUE
             } else if l < 0.85 {
-                if dith { BLUE } else { BLACK }
+                if dith {
+                    BLUE
+                } else {
+                    BLACK
+                }
             } else {
                 BLACK
             };

@@ -202,14 +202,6 @@ impl Voice {
         self.env.gate(true);
     }
 
-    pub fn gate(&self) -> bool {
-        self.gate
-    }
-
-    pub fn level(&self) -> f32 {
-        self.env.level
-    }
-
     #[inline]
     fn advance(&mut self) {
         if self.fmul != 1.0 {
@@ -364,14 +356,6 @@ impl Synth {
         };
     }
 
-    /// Stop every voice at once.
-    pub fn silence(&mut self) {
-        for v in self.v.iter_mut() {
-            v.set_gate(false);
-            v.env.level = 0.0;
-        }
-    }
-
     /// Render interleaved stereo samples.
     pub fn render(&mut self, out: &mut [f32]) {
         self.update_coef();
@@ -469,7 +453,10 @@ mod tests {
     #[test]
     fn voices_sound_and_the_filter_is_stable() {
         let mut s = Synth::new();
-        for (i, w) in [Wave::Saw, Wave::Pulse, Wave::Noise].into_iter().enumerate() {
+        for (i, w) in [Wave::Saw, Wave::Pulse, Wave::Noise]
+            .into_iter()
+            .enumerate()
+        {
             s.v[i].wave = w;
             s.v[i].freq = 110.0 * (i + 1) as f32;
             s.v[i].filter = true;

@@ -8,6 +8,8 @@ use crate::synth::{note_hz, Synth, Wave, LP, MUSIC_VOICES};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Pitch {
+    /// Relative to the note (for drum programs that follow the melody).
+    #[allow(dead_code)]
     Rel(f32),
     Abs(f32),
 }
@@ -382,14 +384,24 @@ impl SongB {
 
     /// Copy the notes of voice `src` from `from` onwards into `dst`,
     /// `delay` rows later, with instrument `ins`: the classic echo voice.
-    pub fn echo(&mut self, src: usize, dst: usize, from: usize, rows: usize, delay: usize, ins: u8) {
+    pub fn echo(
+        &mut self,
+        src: usize,
+        dst: usize,
+        from: usize,
+        rows: usize,
+        delay: usize,
+        ins: u8,
+    ) {
         let start = self.song.v[dst].len();
         for i in 0..rows {
             let cell = if i < delay {
                 Cell::Empty
             } else {
                 match self.song.v[src].get(from + i - delay).copied() {
-                    Some(Cell::Note { note, arp, slide, .. }) => Cell::Note {
+                    Some(Cell::Note {
+                        note, arp, slide, ..
+                    }) => Cell::Note {
                         note,
                         ins,
                         arp,
@@ -413,7 +425,10 @@ impl SongB {
     pub fn sync(&mut self, what: &str) -> usize {
         let l: Vec<usize> = (0..MUSIC_VOICES).map(|v| self.len(v)).collect();
         if l.iter().any(|&x| x != l[0]) {
-            self.problem(format!("{}: voices out of step at {what}: {l:?}", self.song.name));
+            self.problem(format!(
+                "{}: voices out of step at {what}: {l:?}",
+                self.song.name
+            ));
         }
         l.into_iter().max().unwrap_or(0)
     }
@@ -500,7 +515,8 @@ impl Player {
                     ch.pw_dir = 1.0;
                     ch.slide = 0.0;
                     let sv = &mut synth.v[v];
-                    sv.env.set(ins.adsr[0], ins.adsr[1], ins.adsr[2], ins.adsr[3]);
+                    sv.env
+                        .set(ins.adsr[0], ins.adsr[1], ins.adsr[2], ins.adsr[3]);
                     sv.filter = ins.filter;
                     sv.ring = ins.ring;
                     sv.sync = ins.sync;

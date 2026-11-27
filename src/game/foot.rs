@@ -757,7 +757,7 @@ impl Level for Foot {
             }
         }
         // Reinforcements from the top edge now and then.
-        let every = (240.0 / self.agg) as u32;
+        let every = (300.0 / self.agg) as u32;
         if self.boss.is_none()
             && self.t % every == every / 2
             && self.foes.len() < 10
@@ -889,7 +889,7 @@ impl Level for Foot {
                     }
                     let on = f.y > self.cy && f.y < self.cy + VIEW as f32;
                     f.cd -= 1;
-                    if f.cd <= 0 && on && d < 200.0 {
+                    if f.cd <= 0 && on && d < 170.0 {
                         f.cd = if f.kind == Fk::Rifle {
                             (110.0 / self.agg) as i32
                         } else {

@@ -114,9 +114,14 @@ after=$(stat -c %s "$SB/pcm.raw" 2>/dev/null || echo 0)
 [ "$after" -gt "$before" ] || fail "no sound written"
 ok "game started, sound flowing ($after bytes)"
 key Escape
-key Down Return
+key Down Down Return
 sleep 0.5
-key Up Return
+# The controls screen from the title menu, and back.
+key Down Down Down Return
+sleep 0.5
+key Return
+sleep 0.5
+key Down Down Down Return
 i=0
 while kill -0 "$GP" 2>/dev/null; do
     i=$((i + 1)); [ $i -gt 50 ] && fail "QUIT did not end the program"; sleep 0.1

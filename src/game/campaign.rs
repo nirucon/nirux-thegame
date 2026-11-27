@@ -48,7 +48,43 @@ fn waves(v: &mut Vec<(u32, Ev)>, from: u32, to: u32, every: u32, k0: u32, fire: 
     }
 }
 
+/// Spread a script out by `k` and fill long quiet stretches with waves,
+/// so a sector lasts four to six minutes.
+fn stretch(v: Vec<(u32, Ev)>, k: f32) -> Vec<(u32, Ev)> {
+    let mut out: Vec<(u32, Ev)> = v
+        .into_iter()
+        .map(|(t, e)| ((t as f32 * k) as u32, e))
+        .collect();
+    out.sort_by_key(|e| e.0);
+    let mut fill = Vec::new();
+    for w in out.windows(2) {
+        let (a, b) = (w[0].0, w[1].0);
+        let busy = matches!(
+            w[0].1,
+            Ev::Capital | Ev::Boss(_) | Ev::MidBoss(_) | Ev::Gunship(_)
+        );
+        if b > a + 420 && !busy {
+            waves(&mut fill, a + 200, b - 150, 260, a / 7, true);
+        }
+    }
+    out.extend(fill);
+    out.sort_by_key(|e| e.0);
+    out
+}
+
 pub fn side_spec(sector: usize) -> SideSpec {
+    let mut s = side_spec_raw(sector);
+    let k = match sector {
+        0 => 1.45,
+        3 => 1.6,
+        6 => 1.75,
+        _ => 1.2,
+    };
+    s.script = stretch(s.script, k);
+    s
+}
+
+fn side_spec_raw(sector: usize) -> SideSpec {
     match sector {
         3 => {
             // The Shipyards: gantries, two capital ships, the Foundry.
@@ -336,7 +372,12 @@ impl Chain {
                 Box::new(super::iso::Iso::new(d, seed ^ 0x2222, 7)),
                 Box::new(super::foot::Foot::new(d, seed ^ 0x3333, 7)),
             ],
-            i: 0,
+            // For testing: NIRUX_STAGE=2 or 3 starts at a later stage.
+            i: std::env::var("NIRUX_STAGE")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .map(|v| v.clamp(1, 3) - 1)
+                .unwrap_or(0),
             between: 0,
             t: 0,
         }

@@ -225,8 +225,8 @@ pub const FOOT_STYLES: [FootStyle; 3] = [
     FootStyle {
         name: "NIRUX CORE",
         cols: [PURPLE, LRED, RED, YELLOW],
-        guns: 34,
-        core: 90,
+        guns: 28,
+        core: 70,
         shape: 2,
     },
 ];
@@ -242,6 +242,8 @@ pub struct FootSpec {
     pub song: SongId,
     pub boss_song: SongId,
     pub intro: &'static str,
+    /// Map rows played twice, to make the sector longer.
+    pub again: (usize, usize),
 }
 
 pub fn spec(sector: usize) -> FootSpec {
@@ -255,6 +257,7 @@ pub fn spec(sector: usize) -> FootSpec {
             song: SongId::Level6,
             boss_song: SongId::Boss,
             intro: "WATCH THE TRAINS AND THE ROOFS",
+            again: (13, 62),
         },
         7 => FootSpec {
             map: CORE,
@@ -265,6 +268,7 @@ pub fn spec(sector: usize) -> FootSpec {
             song: SongId::Level8,
             boss_song: SongId::FinalBoss,
             intro: "STAGE THREE: THE HEART OF THE CORE",
+            again: (0, 0),
         },
         _ => FootSpec {
             map: MAP,
@@ -275,6 +279,7 @@ pub fn spec(sector: usize) -> FootSpec {
             song: SongId::Level3,
             boss_song: SongId::Boss,
             intro: "CLEAR THE ROAD TO THE GATE",
+            again: (33, 67),
         },
     }
 }
@@ -725,6 +730,12 @@ impl Foot {
                 v
             })
             .collect();
+        // Play the middle stretch twice.
+        let (a0, a1) = spec.again;
+        if a1 > a0 && a1 <= map.len() {
+            let again: Vec<Vec<u8>> = map[a0..a1].to_vec();
+            map.splice(a1..a1, again);
+        }
         let mut markers = Vec::new();
         let mut crates = Vec::new();
         let mut boss_row = 4;
@@ -1053,10 +1064,10 @@ impl Foot {
             self.lob(b.x, b.y, px, py, true);
             out.play(Sfx::Grenade);
         }
-        if b.open() && b.t % ((80.0 / self.agg) as u32) == 0 {
+        if b.open() && b.t % ((100.0 / self.agg) as u32) == 0 {
             let (cx, cy) = b.core();
-            for k in 0..9 {
-                let a = 0.35 + k as f32 * 0.3;
+            for k in 0..7 {
+                let a = 0.45 + k as f32 * 0.37;
                 self.eshots.push(Bullet {
                     x: cx,
                     y: cy,
@@ -1391,14 +1402,14 @@ impl Level for Foot {
                 if b.dying == 0 && (s.x - b.x).abs() < 54.0 && (s.y - b.y).abs() < 24.0 {
                     for i in 0..2 {
                         let (gx, gy) = b.gun(i);
-                        if b.guns[i] > 0 && (s.x - gx).abs() < 10.0 && (s.y - gy).abs() < 10.0 {
+                        if b.guns[i] > 0 && (s.x - gx).abs() < 12.0 && (s.y - gy).abs() < 11.0 {
                             b.guns[i] -= 1;
                             b.flash[i] = 3;
                             return false;
                         }
                     }
                     let (cx, cy) = b.core();
-                    if b.open() && (s.x - cx).abs() < 10.0 && s.y > cy - 10.0 && s.y < cy + 18.0 {
+                    if b.open() && (s.x - cx).abs() < 14.0 && s.y > cy - 10.0 && s.y < cy + 18.0 {
                         b.core -= 1;
                         b.flash[2] = 3;
                         return false;
@@ -1834,8 +1845,8 @@ impl Level for Foot {
                         };
                         for k in 0..10 {
                             let h = hash(c * 7 + k, r) as i32;
-                            let life = (self.t as i32 + h) % 18;
-                            let fx = sx + 3 + (h % 10) + ((self.t as i32 / 3 + k) % 3) - 1;
+                            let life = (self.t as i32 + h).rem_euclid(18);
+                            let fx = sx + 3 + h.rem_euclid(10) + ((self.t as i32 / 3 + k) % 3) - 1;
                             let fy = sy + 12 - life;
                             fb.set(fx, fy, pal[(life / 5).min(3) as usize]);
                             fb.set(fx + 1, fy, pal[(life / 6).min(3) as usize]);
@@ -1911,12 +1922,12 @@ impl Level for Foot {
             ..Default::default()
         };
         let (px, py) = (self.px, self.py);
-        // The nearest enemy close by.
+        // What to shoot: the nearest enemy, or the boss's next part.
         let mut target: Option<(f32, f32)> = None;
-        let mut best = 95.0f32 * 95.0;
+        let mut best = 110.0f32 * 110.0;
         for f in &self.foes {
             let d = d2(f.x, f.y, px, py);
-            if d < best && f.y > self.cy {
+            if d < best && f.y > self.cy && f.y < py + 20.0 && self.clear_line(px, py, f.x, f.y) {
                 best = d;
                 target = Some((f.x, f.y));
             }
@@ -1930,62 +1941,84 @@ impl Level for Foot {
                 b.core()
             });
         }
-        // Default: up the road, swaying a little.
-        let road = 160.0 + (self.t as f32 * 0.013).sin() * 30.0;
-        let (mut wx, mut wy) = (road - px, -1.0);
-        if let Some(p) = self.pickups.first() {
-            if d2(p.x, p.y, px, py) < 100.0 * 100.0 {
-                wx = p.x - px;
-                wy = p.y - py;
-            }
-        }
-        if let Some((x, y)) = target {
-            let (dx, dy) = (x - px, y - py);
-            let aligned = dx.abs() < 5.0 || dy.abs() < 5.0 || (dx.abs() - dy.abs()).abs() < 5.0;
-            if aligned {
-                // Face it (moving that way a step at a time).
+        // Where to go: a path over the tiles towards a goal.
+        let goal = if let Some(b) = &self.boss {
+            let (tx, _) = target.unwrap_or((b.x, b.y));
+            (tx, b.y + 62.0)
+        } else if let Some(p) = self
+            .pickups
+            .iter()
+            .find(|p| d2(p.x, p.y, px, py) < 90.0 * 90.0)
+        {
+            (p.x, p.y)
+        } else if let Some((tx, ty)) = target {
+            // Line up below the target.
+            (tx, (ty + 50.0).max(py - 30.0))
+        } else {
+            (160.0, py - 70.0)
+        };
+        let (mut wx, mut wy) = self.path_step(goal);
+        // Face the target when lined up with it.
+        if let Some((tx, ty)) = target {
+            let (dx, dy) = (tx - px, ty - py);
+            let lined = dx.abs() < 6.0 || dy.abs() < 6.0 || (dx.abs() - dy.abs()).abs() < 6.0;
+            if lined && self.t % 3 != 0 {
                 let d = (dx * dx + dy * dy).sqrt().max(1.0);
-                wx = dx / d;
-                wy = dy / d;
-                if self.boss.is_some() && dy < -40.0 && self.t % 3 != 0 {
-                    wy = 0.0;
-                    wx = 0.0;
+                let (fx, fy) = (dx / d, dy / d);
+                if (fx - self.fxd).abs() > 0.3 || (fy - self.fyd).abs() > 0.3 {
+                    wx = fx;
+                    wy = fy;
                 }
-            } else {
-                wx = dx;
-                wy = if dy < -30.0 { -0.5 } else { 0.0 };
             }
         }
-        i.left = wx < -1.5;
-        i.right = wx > 1.5;
+        // Dodge: bullets about to pass close, and mines about to land.
+        let mut push = (0.0f32, 0.0f32);
+        for s in &self.eshots {
+            let ks: &[f32] = if self.boss.is_some() {
+                &[5.0, 11.0]
+            } else {
+                &[6.0, 14.0, 24.0]
+            };
+            for &k in ks {
+                let (bx, by) = (s.x + s.vx * k, s.y + s.vy * k);
+                if d2(bx, by, px, py) < 11.0 * 11.0 {
+                    // Step sideways from its path.
+                    let (nx, ny) = (-s.vy, s.vx);
+                    let side = if (px - s.x) * nx + (py - s.y) * ny >= 0.0 {
+                        1.0
+                    } else {
+                        -1.0
+                    };
+                    push.0 += nx * side;
+                    push.1 += ny * side;
+                    break;
+                }
+            }
+        }
+        for g in &self.grenades {
+            if g.mine && d2(g.x1, g.y1, px, py) < 22.0 * 22.0 {
+                push.0 += (px - g.x1).signum() * 1.5;
+                push.1 += (py - g.y1).signum() * 1.5;
+            }
+        }
+        if push.0 != 0.0 || push.1 != 0.0 {
+            // Only where the soldier can go.
+            let (nx, ny) = (px + push.0.signum() * 6.0, py + push.1.signum() * 6.0);
+            if !self.blocked(nx, ny, 4.0) {
+                wx = push.0;
+                wy = push.1;
+            } else if !self.blocked(nx, py, 4.0) {
+                wx = push.0;
+                wy = 0.0;
+            } else {
+                wx = 0.0;
+                wy = push.1;
+            }
+        }
+        i.left = wx < -0.3;
+        i.right = wx > 0.3;
         i.up = wy < -0.3;
         i.down = wy > 0.3;
-        if let Some(b) = &self.boss {
-            if py < b.y + 56.0 {
-                i.up = false;
-                i.down = true;
-            }
-        }
-        // Stuck: go around.
-        if (i.up || i.down || i.left || i.right)
-            && self.blocked(px + i.dx() * 3.0, py + i.dy() * 3.0, 4.0)
-        {
-            let s = if (self.t / 90) % 2 == 0 { 1.0 } else { -1.0 };
-            i.left = s < 0.0;
-            i.right = s > 0.0;
-        }
-        // Dodge bullets.
-        for s in &self.eshots {
-            if d2(s.x, s.y, px, py) < 20.0 * 20.0 {
-                if s.vx.abs() > s.vy.abs() {
-                    i.up = s.y >= py;
-                    i.down = s.y < py;
-                } else {
-                    i.left = s.x >= px;
-                    i.right = s.x < px;
-                }
-            }
-        }
         let near_big = self
             .foes
             .iter()
@@ -2016,6 +2049,90 @@ impl Level for Foot {
 }
 
 impl Foot {
+    /// Can a shot get from one point to the other?
+    fn clear_line(&self, x0: f32, y0: f32, x1: f32, y1: f32) -> bool {
+        let n = ((x1 - x0).abs().max((y1 - y0).abs()) / 6.0) as i32;
+        for k in 1..n {
+            let t = k as f32 / n as f32;
+            let (x, y) = (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+            if d2(x, y, x1, y1) > 100.0 && solid_shot(self.at(x, y)) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// The first step of a shortest walk over the tiles towards `goal`,
+    /// as a direction.
+    fn path_step(&self, goal: (f32, f32)) -> (f32, f32) {
+        let (px, py) = (self.px, self.py);
+        let rows = self.map.len() as i32;
+        let r0 = ((self.cy as i32) / T - 1).max(0);
+        let r1 = ((self.cy as i32 + VIEW) / T + 1).min(rows - 1);
+        let h = (r1 - r0 + 1) as usize;
+        let idx = |c: i32, r: i32| ((r - r0) as usize) * COLS + c as usize;
+        let walk = |c: i32, r: i32| {
+            r >= r0
+                && r <= r1
+                && (0..COLS as i32).contains(&c)
+                && !solid_walk(self.map[r as usize][c as usize])
+                && !self
+                    .trains
+                    .iter()
+                    .any(|t| t.0 as i32 == r && (t.2 > 0 || t.1 > -400.0))
+        };
+        let start = (
+            (px as i32 / T).clamp(0, COLS as i32 - 1),
+            (py as i32 / T).clamp(r0, r1),
+        );
+        let gc = (
+            (goal.0 as i32 / T).clamp(0, COLS as i32 - 1),
+            (goal.1 as i32 / T).clamp(r0, r1),
+        );
+        let mut prev = vec![u16::MAX; COLS * h];
+        let mut queue = std::collections::VecDeque::new();
+        prev[idx(start.0, start.1)] = idx(start.0, start.1) as u16;
+        queue.push_back(start);
+        // The reachable tile closest to the goal.
+        let mut best = (start, i32::MAX);
+        while let Some((c, r)) = queue.pop_front() {
+            let d = (c - gc.0).abs() + (r - gc.1).abs() * 2;
+            if d < best.1 {
+                best = ((c, r), d);
+            }
+            if d == 0 {
+                break;
+            }
+            for (dc, dr) in [(0, -1), (-1, 0), (1, 0), (0, 1)] {
+                let (nc, nr) = (c + dc, r + dr);
+                if walk(nc, nr) && prev[idx(nc, nr)] == u16::MAX {
+                    prev[idx(nc, nr)] = idx(c, r) as u16;
+                    queue.push_back((nc, nr));
+                }
+            }
+        }
+        // Walk back to the first step.
+        let mut cur = best.0;
+        if cur == start {
+            return (
+                (goal.0 - px).clamp(-1.0, 1.0),
+                (goal.1 - py).clamp(-1.0, 1.0),
+            );
+        }
+        loop {
+            let p = prev[idx(cur.0, cur.1)] as usize;
+            let pc = ((p % COLS) as i32, (p / COLS) as i32 + r0);
+            if pc == start {
+                break;
+            }
+            cur = pc;
+        }
+        let (tx, ty) = (cur.0 as f32 * 16.0 + 8.0, cur.1 as f32 * 16.0 + 8.0);
+        let (dx, dy) = (tx - px, ty - py);
+        let d = (dx * dx + dy * dy).sqrt().max(1.0);
+        (dx / d, dy / d)
+    }
+
     fn draw_boss(&self, fb: &mut Fb, b: &Boss, ox: i32, oy: i32) {
         let (x, y) = (b.x as i32 + ox, self.sy(b.y) + oy);
         let dying = b.dying > 0 && b.dying % 4 < 2;

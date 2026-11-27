@@ -1,5 +1,42 @@
 # Changelog
 
+# NIRUX 0.2.0
+
+The whole campaign.
+
+- Five new sectors: The Shipyards (gantries, two capital ships, the
+  Foundry), Ice Pylons (moving walls, switching fences, bombers, the
+  Reactor), Burning City (rooftop snipers, trains, fires, the heli
+  gunship), The Gauntlet (full speed, rock tunnels, the Warden Mk II and
+  the Executor) and The NIRUX Core, which runs a space, an isometric and
+  an on-foot stage in a row with a stage of the final boss at the end of
+  each.
+- Mid-bosses everywhere: gunships in the space sectors, the Sentinel in
+  the isometric ones, tanks on foot. The script waits while one fights.
+- Longer sectors (three to six minutes each), difficulty tuned per sector:
+  Easy gentler, Hard harder.
+- An ending with the credits rolling.
+- Seven new songs: Shipyards, Ice Pylons, Burning City, The Gauntlet, The
+  Core, Heart of Nirux (the final boss) and Freedom (the ending).
+- A Controls screen, from the title menu and the pause menu, with the keys,
+  the gamepad buttons, a little pad and the name of the connected pad.
+  Every sector's intro tells what its special does.
+- Gamepads through Linux evdev: PS3, PS4, PS5, Xbox, 8BitDo and plain USB
+  pads, found in sysfs so other input devices are never opened, plugged in
+  any time, with the old joystick interface as a fallback. The menus work
+  fully with a pad.
+- Only the rows of the picture that changed are scaled and sent, which
+  lowers the CPU use in menus and quiet scenes.
+- The autopilot (attract mode and self test) plans its way over the
+  isometric decks and walks the on-foot maps by path finding, and the self
+  test covers all eight sectors.
+
+# NIRUX 0.1.1
+
+- The picture is scaled in the game and sent with MIT-SHM again by default;
+  server-side RENDER scaling made an AMD laptop's X session crash and is now
+  opt-in (NIRUX_RENDER=1).
+
 # NIRUX 0.1.1
 
 - Fix: on an AMD laptop (Xorg with glamor on amdgpu) the game made the

@@ -37,11 +37,25 @@ pub fn dark_rows(s: i32) -> i32 {
 }
 
 /// Scale `src` (palette indices) into `dst` (0x00RRGGBB, `w*s` per row).
+#[cfg(test)]
 pub fn upscale(src: &[u8], lut: &Lut, s: i32, crt: bool, dst: &mut [u32]) {
+    upscale_rows(src, lut, s, crt, dst, 0, H as usize);
+}
+
+/// The same for game rows `r0..r1` only (the rest of `dst` is untouched).
+pub fn upscale_rows(
+    src: &[u8],
+    lut: &Lut,
+    s: i32,
+    crt: bool,
+    dst: &mut [u32],
+    r0: usize,
+    r1: usize,
+) {
     let s = s.max(1) as usize;
     let ow = W as usize * s;
     let dark = if crt { dark_rows(s as i32) as usize } else { 0 };
-    for y in 0..H as usize {
+    for y in r0..r1.min(H as usize) {
         let srow = &src[y * W as usize..(y + 1) * W as usize];
         let base = y * s * ow;
         {
@@ -77,6 +91,18 @@ pub fn upscale(src: &[u8], lut: &Lut, s: i32, crt: bool, dst: &mut [u32]) {
     }
 }
 
+/// The rows that differ between two pictures: (first, one past the last).
+pub fn changed_rows(a: &[u8], b: &[u8]) -> (usize, usize) {
+    let w = W as usize;
+    let h = H as usize;
+    let same = |y: usize| a[y * w..(y + 1) * w] == b[y * w..(y + 1) * w];
+    let Some(first) = (0..h).find(|&y| !same(y)) else {
+        return (0, 0);
+    };
+    let last = (first..h).rev().find(|&y| !same(y)).unwrap_or(first);
+    (first, last + 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,6 +115,16 @@ mod tests {
         assert_eq!(layout(200, 100).scale, 1);
         let l = layout(1920, 1080);
         assert_eq!((l.x, l.y, l.w, l.h), (160, 40, 1600, 1000));
+    }
+
+    #[test]
+    fn changed_rows_finds_the_band() {
+        let a = vec![0u8; (W * H) as usize];
+        let mut b = a.clone();
+        assert_eq!(changed_rows(&a, &b), (0, 0));
+        b[(W * 10 + 5) as usize] = 1;
+        b[(W * 40) as usize] = 1;
+        assert_eq!(changed_rows(&a, &b), (10, 41));
     }
 
     #[test]

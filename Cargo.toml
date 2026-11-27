@@ -1,6 +1,6 @@
 [package]
 name = "nirux-thegame"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.85"
 description = "NIRUX, an original Commodore 64 style shooter for the NIRUX desktop"

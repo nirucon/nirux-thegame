@@ -106,9 +106,9 @@ impl Difficulty {
     /// Enemy fire rate and bullet speed factor.
     pub fn aggression(self) -> f32 {
         match self {
-            Difficulty::Easy => 0.6,
+            Difficulty::Easy => 0.5,
             Difficulty::Normal => 1.0,
-            Difficulty::Hard => 1.4,
+            Difficulty::Hard => 1.55,
         }
     }
     pub fn lives(self) -> i32 {

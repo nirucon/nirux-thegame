@@ -243,6 +243,7 @@ pub struct Iso {
     over_t: Option<u32>,
     banner: Option<(&'static str, u32)>,
     bank: f32,
+    last_cause: &'static str,
     spec: IsoSpec,
     /// How far the course was held back while a mid-boss fought.
     off: f32,
@@ -658,6 +659,7 @@ impl Iso {
             over_t: None,
             banner: None,
             bank: 0.0,
+            last_cause: "",
             spec,
             off: 0.0,
         }
@@ -1311,6 +1313,7 @@ impl Level for Iso {
         // Enemy shots.
         let alive = self.dead == 0;
         let mut hit = false;
+        let mut cause = "";
         self.eshots.retain_mut(|s| {
             s.f += s.vf;
             s.l += s.vl;
@@ -1318,6 +1321,7 @@ impl Level for Iso {
             s.life += 1;
             if alive && (s.f - pf).abs() < 5.0 && (s.l - pl).abs() < 5.0 && (s.z - pz).abs() < 5.0 {
                 hit = true;
+                cause = "shot";
                 return false;
             }
             let df = s.f - cam;
@@ -1327,23 +1331,28 @@ impl Level for Iso {
             // Crashing into the course.
             for o in &self.objs {
                 let (z0, z1) = o.z_range();
-                if pf + 6.0 >= o.f0
-                    && pf - 6.0 <= o.f1
-                    && pl + 4.0 >= o.l0
-                    && pl - 4.0 <= o.l1
-                    && pz + 2.0 >= z0
+                if pf + 4.0 >= o.f0
+                    && pf - 4.0 <= o.f1
+                    && pl + 3.0 >= o.l0
+                    && pl - 3.0 <= o.l1
+                    && pz + 1.0 >= z0
                     && pz - 1.0 <= z1
                 {
                     hit = true;
+                    cause = "course";
                 }
             }
             for a in &self.air {
                 if (a.f - pf).abs() < 7.0 && (a.l - pl).abs() < 7.0 && (a.z - pz).abs() < 6.0 {
                     hit = true;
+                    cause = "air";
                 }
             }
         }
         if hit {
+            if self.inv == 0 && self.dead == 0 {
+                self.last_cause = cause;
+            }
             self.kill_player(st, out);
         }
         // Pickups.
@@ -1568,38 +1577,76 @@ impl Level for Iso {
                 tz = p.z;
             }
         }
-        // Obstacles decide the height.
-        for o in &self.objs {
-            let df = o.f0 - pf;
-            if (-8.0..70.0).contains(&df) && tl + 4.0 >= o.l0 && tl - 4.0 <= o.l1 {
-                match o.kind {
-                    Ok::Fence { z0, z1 } => {
-                        tz = if z0 > 5.0 {
-                            (z0 - 10.0).max(ZMIN)
-                        } else {
-                            z1 + 9.0
-                        }
+        // Pick the best place to be: aligned with the target, clear of
+        // everything the course will put in the way (moving walls and
+        // switching fences as they will be when they arrive), and away
+        // from shots.
+        let t = self.t;
+        let mut best = (f32::MAX, self.l, self.z);
+        for li in 0..14 {
+            let l = 3.0 + li as f32 * 6.9;
+            for zi in 0..11 {
+                let z = ZMIN + 1.0 + zi as f32 * 5.0;
+                let need = ((l - self.l).abs() / 1.3).max((z - self.z).abs() / 0.9);
+                let mut cost = (l - tl).powi(2) * 0.4 + (z - tz).powi(2) * 0.3 + need * 1.5;
+                for o in &self.objs {
+                    let df = o.f0 - pf;
+                    if !(-10.0..140.0).contains(&df) {
+                        continue;
                     }
-                    Ok::Wall | Ok::Tower | Ok::Pylon | Ok::Silo(_) | Ok::Turret => {
-                        if matches!(o.kind, Ok::Tower) {
-                            tl = if o.l0 > 40.0 {
-                                o.l0 - 14.0
-                            } else {
-                                o.l1 + 14.0
-                            };
+                    let arrive = ((df - 8.0) / CAM_SPEED).max(0.0);
+                    let (mut l0, mut l1) = (o.l0, o.l1);
+                    if o.vl != 0.0 {
+                        // A moving wall could be anywhere by then: go over.
+                        l0 = -20.0;
+                        l1 = LW + 20.0;
+                    }
+                    let (z0, z1) = if o.switch > 0 {
+                        let ta = t + arrive as u32;
+                        let high = (ta / o.switch) % 2 == 1;
+                        // Near a switch either state may hold: avoid both.
+                        let edge = (ta % o.switch) < 25 || (ta % o.switch) > o.switch - 25;
+                        if edge {
+                            (0.0, ZMAX + 4.0)
+                        } else if high {
+                            (30.0, ZMAX + 4.0)
                         } else {
-                            tz = tz.max(o.h + 9.0);
+                            (0.0, 24.0)
+                        }
+                    } else {
+                        o.z_range()
+                    };
+                    if l + 9.0 >= l0 && l - 9.0 <= l1 && z + 5.0 >= z0 && z - 4.0 <= z1 {
+                        cost += 20000.0 / (1.0 + arrive * 0.05);
+                    }
+                    // Not reachable before it arrives, or the way there
+                    // crosses it.
+                    let hits_now = self.l + 5.0 >= l0
+                        && self.l - 5.0 <= l1
+                        && self.z + 3.0 >= z0
+                        && self.z - 2.0 <= z1;
+                    if hits_now && need + 6.0 > arrive {
+                        cost += 8000.0;
+                    }
+                }
+                for sh in &self.eshots {
+                    for k in [5.0f32, 15.0, 30.0] {
+                        let (sf, sl, sz) = (sh.f + sh.vf * k, sh.l + sh.vl * k, sh.z + sh.vz * k);
+                        if (sf - (pf + CAM_SPEED * k)).abs() < 8.0
+                            && (sl - l).abs() < 7.0
+                            && (sz - z).abs() < 7.0
+                        {
+                            cost += 3000.0 / k;
                         }
                     }
                 }
+                if cost < best.0 {
+                    best = (cost, l, z);
+                }
             }
         }
-        // Dodge shots.
-        for s in &self.eshots {
-            if (s.f - pf).abs() < 20.0 && (s.l - self.l).abs() < 8.0 && (s.z - self.z).abs() < 8.0 {
-                tl += if s.l > self.l { -12.0 } else { 12.0 };
-            }
-        }
+        tl = best.1;
+        tz = best.2;
         i.left = tl < self.l - 1.5;
         i.right = tl > self.l + 1.5;
         i.up = tz > self.z + 1.0;
@@ -1629,7 +1676,8 @@ impl Level for Iso {
                 b.dying
             ),
             None => format!(
-                "cam {:.0} objs {} air {}",
+                "last hit by {} cam {:.0} objs {} air {}",
+                self.last_cause,
                 self.cam,
                 self.objs.len(),
                 self.air.len()

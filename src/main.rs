@@ -51,6 +51,7 @@ struct Opts {
     level: Option<usize>,
     bot: bool,
     quit_after: Option<f32>,
+    show: Option<String>,
 }
 
 fn main() {
@@ -61,6 +62,7 @@ fn main() {
         level: None,
         bot: false,
         quit_after: None,
+        show: None,
     };
     let mut i = 0;
     while i < args.len() {
@@ -126,6 +128,11 @@ fn main() {
                     std::process::exit(2);
                 }
             }
+            "--show" => {
+                // For screenshots: open a screen directly (controls, ending).
+                i += 1;
+                o.show = args.get(i).cloned();
+            }
             "--quit-after" => {
                 i += 1;
                 o.quit_after = args.get(i).and_then(|s| s.parse().ok());
@@ -163,6 +170,15 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
         g.start_attract_demo();
     } else if let Some(l) = o.level {
         g.start_run(l - 1);
+    }
+    match o.show.as_deref() {
+        Some("controls") => g.go(game::Scr::Controls),
+        Some("ending") => {
+            g.lvl = game::LEVELS - 1;
+            g.go(game::Scr::Victory);
+        }
+        Some("select") => g.go(game::Scr::Select),
+        _ => {}
     }
     let mut ctl = input::Controls::new();
     let mut fb = fb::Fb::new();
@@ -282,7 +298,13 @@ fn selftest(frames: u32, verbose: bool) -> bool {
     use game::common::{Out, Stats, Status};
     let mut ok = true;
     let mut fb = fb::Fb::new();
+    let only: Option<usize> = std::env::var("NIRUX_ONLY")
+        .ok()
+        .and_then(|v| v.parse().ok());
     for lvl in 0..game::LEVELS {
+        if only.is_some_and(|o| o != lvl + 1) {
+            continue;
+        }
         for d in [
             config::Difficulty::Easy,
             config::Difficulty::Normal,
@@ -334,8 +356,11 @@ fn selftest(frames: u32, verbose: bool) -> bool {
     // The menus: title, options, level select, a game, pause, quit.
     let mut g = game::Game::new(config::Config::default(), config::Save::default(), false);
     let script: &[(u32, input::Key)] = &[
-        (30, input::Key::Down),
-        (40, input::Key::Down),
+        (20, input::Key::Down),
+        (24, input::Key::Down),
+        (28, input::Key::Down),
+        (32, input::Key::Fire),
+        (45, input::Key::Fire),
         (50, input::Key::Down),
         (60, input::Key::Fire),
         (80, input::Key::Right),
@@ -367,7 +392,7 @@ fn selftest(frames: u32, verbose: bool) -> bool {
         v.sort();
         println!("screens visited: {}", v.join(" "));
     }
-    for s in ["Options", "Intro", "Play", "Pause", "Title"] {
+    for s in ["Controls", "Options", "Intro", "Play", "Pause", "Title"] {
         if !seen.contains(s) {
             println!("menu script never reached {s}");
             ok = false;

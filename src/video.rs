@@ -69,6 +69,9 @@ pub struct Video {
     border: Option<u32>,
     border_layout: Option<Layout>,
     scratch: Vec<u32>,
+    /// The last picture sent, to send only the rows that changed.
+    last: Vec<u8>,
+    last_key: Option<(Layout, bool, usize)>,
     render: Option<Render>,
 }
 
@@ -217,6 +220,8 @@ impl Video {
             border: None,
             border_layout: None,
             scratch: Vec::new(),
+            last: Vec::new(),
+            last_key: None,
             render,
             c,
         })
@@ -303,7 +308,10 @@ impl Video {
                         self.border_layout = None;
                     }
                 }
-                Event::Expose(_) => self.border_layout = None,
+                Event::Expose(_) => {
+                    self.border_layout = None;
+                    self.last_key = None;
+                }
                 Event::ClientMessage(m) if m.data.as_data32()[0] == self.wm_delete => {
                     out.push(Ev::Close)
                 }
@@ -418,22 +426,38 @@ impl Video {
             return self.present_render(fb, lut, lay, crt);
         }
         let n = (lay.w * lay.h) as usize;
+        // Only the rows that changed since the last frame are scaled and
+        // sent; an unchanged picture costs nothing.
+        let key = (lay, crt, lut.color.as_ptr() as usize);
+        let (r0, r1) = if self.last_key == Some(key) && self.last.len() == fb.px.len() {
+            scale::changed_rows(&self.last, &fb.px)
+        } else {
+            (0, crate::fb::H as usize)
+        };
+        if r0 >= r1 {
+            return Ok(());
+        }
+        self.last.clear();
+        self.last.extend_from_slice(&fb.px);
+        self.last_key = Some(key);
+        let s32 = lay.scale as usize;
+        let (y0, hh) = (r0 * s32, (r1 - r0) * s32);
         if self.ensure_shm(n * 4) {
             let s = self.shm.as_ref().unwrap();
             // SAFETY: the segment is page aligned and at least n*4 bytes.
             let dst = unsafe { std::slice::from_raw_parts_mut(s.addr as *mut u32, n) };
-            scale::upscale(&fb.px, lut, lay.scale, crt, dst);
+            scale::upscale_rows(&fb.px, lut, lay.scale, crt, dst, r0, r1);
             self.c.shm_put_image(
                 self.win,
                 self.gc,
                 lay.w as u16,
                 lay.h as u16,
                 0,
-                0,
+                y0 as u16,
                 lay.w as u16,
-                lay.h as u16,
+                hh as u16,
                 lay.x as i16,
-                lay.y as i16,
+                (lay.y as usize + y0) as i16,
                 self.depth,
                 ImageFormat::Z_PIXMAP.into(),
                 false,
@@ -444,16 +468,16 @@ impl Video {
             if self.scratch.len() < n {
                 self.scratch.resize(n, 0);
             }
-            scale::upscale(&fb.px, lut, lay.scale, crt, &mut self.scratch[..n]);
+            scale::upscale_rows(&fb.px, lut, lay.scale, crt, &mut self.scratch[..n], r0, r1);
             // SAFETY: plain u32 pixels viewed as bytes.
             let bytes =
                 unsafe { std::slice::from_raw_parts(self.scratch.as_ptr() as *const u8, n * 4) };
             let max = self.c.maximum_request_bytes().saturating_sub(64).max(4096);
             let row = lay.w as usize * 4;
             let rows = (max / row).max(1);
-            let mut y = 0usize;
-            while y < lay.h as usize {
-                let k = rows.min(lay.h as usize - y);
+            let mut y = y0;
+            while y < y0 + hh {
+                let k = rows.min(y0 + hh - y);
                 self.c.put_image(
                     ImageFormat::Z_PIXMAP,
                     self.win,

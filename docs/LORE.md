@@ -77,8 +77,11 @@ things go.
   ones wander, and daemons rule. It is the setting of NIRUX II. Every night
   the **cron bells** ring and the Undercroft wakes.
 - **The Reaper** is the old process that once cleared away the dead. It
-  watches NIRUX in the Undercroft, reaps the risen dead, and its side is
-  the open question of NIRUX II.
+  watches NIRUX in the Undercroft and reaps the risen dead. In the Kernel
+  Crypt it walks with NIRUX ("I reap what NULL raises"), and at the end it
+  takes what was left of NULL where nothing returns. It speaks in grey.
+- **After NIRUX II:** NULL is gone, the Undercroft is quiet, and ECHO's
+  voice is clear again. The guardian rests; "NIRUX will return".
 
 ## The music
 
@@ -92,7 +95,7 @@ the key and style of that game.
 | Game | Title | Status |
 | --- | --- | --- |
 | I | NIRUX | released: a shooter in eight sectors |
-| II | NIRUX II - NIGHT OF THE DAEMONS | in progress: stages 1 and 2 released, see [NIRUX-II.md](NIRUX-II.md) and the [nirux-ii](https://github.com/nirucon/nirux-ii) repository |
+| II | NIRUX II - NIGHT OF THE DAEMONS | released: an action platformer in seven stages, see [NIRUX-II.md](NIRUX-II.md) and the [nirux-ii](https://github.com/nirucon/nirux-ii) repository |
 
 Sequels are titled `NIRUX II - SUBTITLE`, `NIRUX III - SUBTITLE` and so
 on, and live in their own repositories as NIRUX extras.

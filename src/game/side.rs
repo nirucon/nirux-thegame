@@ -1894,6 +1894,61 @@ fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32, pc: [u8; 3]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Put the ship in line with the part that can be hurt and fire until
+    /// the boss goes down; true when it did within the frames.
+    fn beat(lv: &mut Side, frames: u32) -> bool {
+        let mut st = Stats::new(3);
+        st.weapon = 2;
+        let mut out = Out::default();
+        for _ in 0..frames {
+            lv.inv = 1000;
+            lv.dead = 0;
+            st.lives = 3;
+            lv.eshots.clear();
+            match &lv.boss {
+                Some(b) => {
+                    let y = if b.core_open() {
+                        b.core_pos().1
+                    } else if b.parts[0].hp > 0 {
+                        b.cannon_pos(0).1
+                    } else {
+                        b.cannon_pos(1).1
+                    };
+                    lv.px = 80.0;
+                    lv.py = y;
+                }
+                None => return true,
+            }
+            let inp = Input { fire: true, ..Default::default() };
+            if lv.update(&inp, &mut st, &mut out) == Status::Cleared {
+                return true;
+            }
+        }
+        lv.boss.is_none()
+    }
+
+    #[test]
+    fn every_side_boss_can_be_destroyed() {
+        for d in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard] {
+            for style in 0..STYLES.len() as u8 {
+                let mut spec = crate::game::campaign::side_spec(0);
+                spec.script.clear();
+                let mut lv = Side::new(d, 5, 3, spec);
+                lv.spawn(Ev::Boss(style));
+                assert!(beat(&mut lv, 6000), "{} {:?}: {}", STYLES[style as usize].name, d, lv.info());
+                assert!(lv.t > 300, "too quick to be a fight");
+                // As a mid-boss it goes away and the sector carries on.
+                let mut spec = crate::game::campaign::side_spec(0);
+                spec.script.clear();
+                let mut lv = Side::new(d, 5, 6, spec);
+                lv.spawn(Ev::MidBoss(style));
+                assert!(beat(&mut lv, 6000), "mid {} {:?}", STYLES[style as usize].name, d);
+                assert!(lv.clear_t.is_none());
+            }
+        }
+    }
+
     #[test]
     fn capital_profile_is_continuous_enough() {
         let mut last = cap_top(0.0).unwrap();

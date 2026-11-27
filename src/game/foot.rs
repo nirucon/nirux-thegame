@@ -1196,8 +1196,12 @@ impl Level for Foot {
                 } else {
                     1.0
                 };
-                self.fxd = dx * k;
-                self.fyd = dy * k;
+                // Holding fire keeps the aim (strafing); otherwise the
+                // soldier turns the way he walks.
+                if !inp.fire {
+                    self.fxd = dx * k;
+                    self.fyd = dy * k;
+                }
                 let sp = 1.1;
                 let nx = self.px + dx * k * sp;
                 if !self.blocked(nx, self.py, 4.0) {
@@ -1958,17 +1962,17 @@ impl Level for Foot {
             (160.0, py - 70.0)
         };
         let (mut wx, mut wy) = self.path_step(goal);
-        // Face the target when lined up with it.
+        // The aim we want: straight at a lined-up target, else up the road.
+        let mut aim = (0.0f32, -1.0f32);
         if let Some((tx, ty)) = target {
             let (dx, dy) = (tx - px, ty - py);
-            let lined = dx.abs() < 6.0 || dy.abs() < 6.0 || (dx.abs() - dy.abs()).abs() < 6.0;
-            if lined && self.t % 3 != 0 {
-                let d = (dx * dx + dy * dy).sqrt().max(1.0);
-                let (fx, fy) = (dx / d, dy / d);
-                if (fx - self.fxd).abs() > 0.3 || (fy - self.fyd).abs() > 0.3 {
-                    wx = fx;
-                    wy = fy;
-                }
+            if dx.abs() < 10.0 {
+                aim = (0.0, dy.signum());
+            } else if (dx.abs() - dy.abs()).abs() < 10.0 {
+                let k = std::f32::consts::FRAC_1_SQRT_2;
+                aim = (dx.signum() * k, dy.signum() * k);
+            } else if dy.abs() < 10.0 {
+                aim = (dx.signum(), 0.0);
             }
         }
         // Dodge: bullets about to pass close, and mines about to land.
@@ -2019,6 +2023,14 @@ impl Level for Foot {
         i.right = wx > 0.3;
         i.up = wy < -0.3;
         i.down = wy > 0.3;
+        // Turn first: let go of fire for a frame and press the new aim.
+        if (aim.0 - self.fxd).abs() > 0.3 || (aim.1 - self.fyd).abs() > 0.3 {
+            i.fire = false;
+            i.left = aim.0 < -0.3;
+            i.right = aim.0 > 0.3;
+            i.up = aim.1 < -0.3;
+            i.down = aim.1 > 0.3;
+        }
         let near_big = self
             .foes
             .iter()
@@ -2345,6 +2357,50 @@ fn tank(fb: &mut Fb, x: i32, y: i32, fx: f32, fy: f32, t: u32, flash: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn every_foot_boss_can_be_destroyed() {
+        for sector in [2usize, 5, 7] {
+            for d in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard] {
+                let mut lv = Foot::new(d, 7, sector);
+                // Straight to the boss yard.
+                lv.cy = 0.0;
+                lv.markers.clear();
+                lv.px = 160.0;
+                lv.py = lv.boss_row as f32 * 16.0 + 70.0;
+                let mut st = Stats::new(3);
+                st.weapon = 2;
+                let mut out = Out::default();
+                let mut done = None;
+                for f in 0..20000u32 {
+                    lv.inv = 1000;
+                    lv.dead = 0;
+                    st.lives = 3;
+                    // Stand below the part that can be hurt, face up, fire.
+                    let mut inp = Input { fire: true, ..Default::default() };
+                    if let Some(b) = &lv.boss {
+                        let (tx, _) = if b.guns[0] > 0 {
+                            b.gun(0)
+                        } else if b.guns[1] > 0 {
+                            b.gun(1)
+                        } else {
+                            b.core()
+                        };
+                        lv.px = tx;
+                        lv.py = b.y + 64.0;
+                        lv.fxd = 0.0;
+                        lv.fyd = -1.0;
+                        inp.up = f % 20 == 0;
+                    }
+                    if lv.update(&inp, &mut st, &mut out) == Status::Cleared {
+                        done = Some(f);
+                        break;
+                    }
+                }
+                assert!(done.is_some(), "sector {} {:?}: {}", sector + 1, d, lv.info());
+            }
+        }
+    }
+
     #[test]
     fn the_map_is_rectangular_and_has_a_boss() {
         for map in [MAP, CITY, CORE] {

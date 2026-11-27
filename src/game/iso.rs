@@ -162,6 +162,8 @@ pub struct IsoSpec {
     pub crystal: [u8; 4],
     /// Colour map for the ground (deck and what lies below).
     pub ground: [u8; 16],
+    /// Where the deck drops away: lip, stripes, lines, the rest.
+    pub face: [u8; 4],
     pub border: u8,
     pub hud: u8,
     pub song: SongId,
@@ -170,7 +172,7 @@ pub struct IsoSpec {
 
 const SAME: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const ICE: [u8; 16] = [0, 1, 4, 3, 4, 5, 6, 1, 3, 14, 10, 14, 15, 13, 14, 1];
-const CORE: [u8; 16] = [0, 15, 2, 3, 4, 5, 6, 10, 4, 0, 10, 0, 11, 13, 14, 12];
+const CORE: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 10, 4, 0, 10, 4, 11, 13, 14, 12];
 
 pub fn spec(sector: usize) -> IsoSpec {
     match sector {
@@ -183,6 +185,7 @@ pub fn spec(sector: usize) -> IsoSpec {
             core: 80,
             crystal: [WHITE, LBLUE, BLUE, CYAN],
             ground: ICE,
+            face: [WHITE, LBLUE, LBLUE, BLACK],
             border: LBLUE,
             hud: CYAN,
             song: SongId::Level5,
@@ -197,6 +200,7 @@ pub fn spec(sector: usize) -> IsoSpec {
             core: 90,
             crystal: [LRED, PURPLE, BLUE, WHITE],
             ground: CORE,
+            face: [WHITE, LRED, PURPLE, DGREY],
             border: PURPLE,
             hud: LRED,
             song: SongId::Level8,
@@ -211,6 +215,7 @@ pub fn spec(sector: usize) -> IsoSpec {
             core: 60,
             crystal: [CYAN, LBLUE, BLUE, WHITE],
             ground: SAME,
+            face: [LGREY, DGREY, BROWN, BLACK],
             border: BROWN,
             hud: ORANGE,
             song: SongId::Level2,
@@ -1694,6 +1699,7 @@ impl Iso {
     fn draw_ground(&self, fb: &mut Fb, ox: i32, oy: i32) {
         let tex = textures();
         let gmap = self.spec.ground;
+        let face = self.spec.face;
         let cam = self.cam;
         let t = self.t;
         let blink = (t / 20) as usize;
@@ -1746,16 +1752,17 @@ impl Iso {
                     since[xi] = since[xi].saturating_add(1);
                     let k = since[xi];
                     if k <= DROP {
+                        // Face colours come from the sector (16 and up).
                         if k == 1 {
-                            LGREY
+                            16
                         } else if k > DROP - 3 {
-                            BLACK
+                            19
                         } else if edge[xi] == 0 {
-                            DGREY
+                            17
                         } else if k % 6 == 3 {
-                            BROWN
+                            18
                         } else {
-                            BLACK
+                            19
                         }
                     } else {
                         let d =
@@ -1786,7 +1793,7 @@ impl Iso {
                     }
                 };
                 if y >= HUD_H {
-                    fb.px[row + xi] = gmap[(c & 15) as usize];
+                    fb.px[row + xi] = if c >= 16 { face[(c - 16) as usize & 3] } else { gmap[c as usize] };
                 }
                 ff += step;
                 lf += step;
@@ -2287,6 +2294,67 @@ fn textures() -> &'static Textures {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_iso_boss_can_be_destroyed() {
+        for sector in [1usize, 4, 7] {
+            for d in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard] {
+                let mut lv = Iso::new(d, 9, sector);
+                lv.pending.clear();
+                lv.waves.clear();
+                lv.cam = lv.spec.boss_at;
+                let mut st = Stats::new(3);
+                st.weapon = 2;
+                let mut out = Out::default();
+                let mut done = false;
+                for _ in 0..12000 {
+                    lv.inv = 1000;
+                    lv.dead = 0;
+                    st.lives = 3;
+                    lv.eshots.clear();
+                    // Line up with a shard, then with the open core.
+                    if let Some(a) = lv.air.iter().find(|a| a.kind == Ak::Shard) {
+                        lv.l = a.l.clamp(2.0, LW - 2.0);
+                        lv.z = a.z.clamp(ZMIN, ZMAX);
+                    } else if let Some(b) = &lv.boss {
+                        lv.l = b.l;
+                        lv.z = 30.0;
+                    }
+                    let inp = Input { fire: true, ..Default::default() };
+                    if lv.update(&inp, &mut st, &mut out) == Status::Cleared {
+                        done = true;
+                        break;
+                    }
+                }
+                assert!(done, "sector {} {:?}: {}", sector + 1, d, lv.info());
+                assert!(lv.t > 300, "too quick to be a fight");
+            }
+        }
+    }
+
+    #[test]
+    fn the_sentinel_can_be_shot_down() {
+        let mut lv = Iso::new(Difficulty::Hard, 9, 4);
+        lv.pending.clear();
+        lv.waves.clear();
+        lv.spawn_wave(Wave::Sentinel);
+        let mut st = Stats::new(3);
+        let mut out = Out::default();
+        for _ in 0..6000 {
+            lv.inv = 1000;
+            lv.eshots.clear();
+            match lv.air.iter().find(|a| a.kind == Ak::Sentinel) {
+                Some(a) => {
+                    lv.l = a.l.clamp(2.0, LW - 2.0);
+                    lv.z = a.z.clamp(ZMIN, ZMAX);
+                }
+                None => return,
+            }
+            lv.update(&Input { fire: true, ..Default::default() }, &mut st, &mut out);
+        }
+        panic!("the sentinel survived");
+    }
+
     #[test]
     fn projection_round_trips() {
         let lv = Iso::new(Difficulty::Normal, 3, 1);

@@ -360,7 +360,11 @@ fn clear(g: &Game, fb: &mut Fb) {
     let ship = &crate::art::get().ship;
     fb.blit(ship, sx, 164);
     for i in 0..6 {
-        fb.set(sx - 1 - i, 170, [WHITE, YELLOW, YELLOW, ORANGE, RED, BROWN][i as usize]);
+        fb.set(
+            sx - 1 - i,
+            170,
+            [WHITE, YELLOW, YELLOW, ORANGE, RED, BROWN][i as usize],
+        );
     }
     fb.text_big_center(
         34,

@@ -345,9 +345,22 @@ fn clear(g: &Game, fb: &mut Fb) {
     fb.clear(BLACK);
     let t = g.t;
     let info = &INFO[g.lvl];
+    if let Ok(mut s) = stars().lock() {
+        s.update(1.5, 0.0);
+        s.draw(fb, t);
+    }
     for i in 0..3 {
         let y = 16 + ((t as f32 * 0.04 + i as f32 * 2.0).sin() * 10.0) as i32;
         raster_bar(fb, y, &RAMP_GREEN);
+        let y = 184 + ((t as f32 * 0.05 + i as f32 * 2.0).sin() * 6.0) as i32;
+        raster_bar(fb, y, &RAMP_BLUE);
+    }
+    // The ship crosses the screen.
+    let sx = (t as i32 * 3) % (W + 120) - 60;
+    let ship = &crate::art::get().ship;
+    fb.blit(ship, sx, 160);
+    for i in 0..6 {
+        fb.set(sx - 1 - i, 166, [WHITE, YELLOW, YELLOW, ORANGE, RED, BROWN][i as usize]);
     }
     fb.text_big_center(
         34,

@@ -527,7 +527,7 @@ impl Game {
                 }
             }
             Scr::Victory => {
-                if (self.t > 180 && ok) || self.t > 2300 {
+                if (self.t > 180 && ok) || self.t > 2150 {
                     self.after_run();
                 }
             }

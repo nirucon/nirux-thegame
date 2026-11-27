@@ -2347,11 +2347,17 @@ mod tests {
     use super::*;
     #[test]
     fn the_map_is_rectangular_and_has_a_boss() {
-        for (i, r) in MAP.iter().enumerate() {
-            assert_eq!(r.len(), COLS, "row {i}");
+        for map in [MAP, CITY, CORE] {
+            for (i, r) in map.iter().enumerate() {
+                assert_eq!(r.len(), COLS, "row {i}");
+            }
+            assert!(map.iter().any(|r| r.contains('X')));
         }
-        assert!(MAP.iter().any(|r| r.contains('X')));
-        let lv = Foot::new(Difficulty::Normal, 1);
+        for sector in [2, 5, 7] {
+            let lv = Foot::new(Difficulty::Normal, 1, sector);
+            assert!(!lv.blocked(lv.px, lv.py, 4.0), "sector {sector} start");
+        }
+        let lv = Foot::new(Difficulty::Normal, 1, 2);
         assert!(!lv.blocked(lv.px, lv.py, 4.0));
     }
 }

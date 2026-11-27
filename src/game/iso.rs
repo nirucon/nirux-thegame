@@ -149,9 +149,11 @@ enum Wave {
     Text(&'static str),
 }
 
+type Course = (Vec<Obj>, Vec<(f32, Wave)>);
+
 /// What makes one isometric sector different from another.
 pub struct IsoSpec {
-    course: fn(&mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>),
+    course: fn(&mut Rng) -> Course,
     deck: fn(i32, i32) -> bool,
     pub boss_at: f32,
     pub boss_name: &'static str,
@@ -167,7 +169,7 @@ pub struct IsoSpec {
 }
 
 const SAME: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-const ICE: [u8; 16] = [0, 1, 4, 3, 4, 5, 6, 3, 14, 6, 10, 14, 15, 13, 14, 1];
+const ICE: [u8; 16] = [0, 1, 4, 3, 4, 5, 6, 1, 3, 14, 10, 14, 15, 13, 14, 1];
 const CORE: [u8; 16] = [0, 15, 2, 3, 4, 5, 6, 10, 4, 0, 10, 0, 11, 13, 14, 12];
 
 pub fn spec(sector: usize) -> IsoSpec {
@@ -939,8 +941,8 @@ impl Level for Iso {
                     o.vl = -o.vl;
                 }
             }
-            if o.switch > 0 {
-                let high = (t / o.switch) % 2 == 1;
+            if let Some(phase) = t.checked_div(o.switch) {
+                let high = phase % 2 == 1;
                 o.kind = if high {
                     Ok::Fence {
                         z0: 30.0,
@@ -1601,9 +1603,9 @@ impl Level for Iso {
                         l0 = -20.0;
                         l1 = LW + 20.0;
                     }
-                    let (z0, z1) = if o.switch > 0 {
-                        let ta = t + arrive as u32;
-                        let high = (ta / o.switch) % 2 == 1;
+                    let ta = t + arrive as u32;
+                    let (z0, z1) = if let Some(phase) = ta.checked_div(o.switch) {
+                        let high = phase % 2 == 1;
                         // Near a switch either state may hold: avoid both.
                         let edge = (ta % o.switch) < 25 || (ta % o.switch) > o.switch - 25;
                         if edge {
@@ -1726,7 +1728,7 @@ impl Iso {
                     let h = hash(fi, li) as usize;
                     tile = (
                         (fi, li),
-                        (self.spec.deck)(((ff - offf) >> 20) as i32, li),
+                        (self.spec.deck)((ff - offf) >> 20, li),
                         (h % 11) * 2 + ((fi + li) & 1) as usize,
                     );
                 }
@@ -2287,7 +2289,7 @@ mod tests {
     use super::*;
     #[test]
     fn projection_round_trips() {
-        let lv = Iso::new(Difficulty::Normal, 3);
+        let lv = Iso::new(Difficulty::Normal, 3, 1);
         let (x, y) = lv.proj(40.0, 48.0, 0.0);
         let (xa, ya) = (x - OX, OY - y);
         let df = (xa + 2.0 * ya) * 0.5;

@@ -2,6 +2,8 @@
 //! A 320x200 picture in the 16 C64 colours, scaled by whole numbers to any
 //! screen with the C64 border around it, a three voice SID-style
 //! synthesiser for the music and effects, and a 60 Hz fixed time step.
+// Synth voices and tile rows are indexed in step with other arrays.
+#![allow(clippy::needless_range_loop)]
 mod art;
 mod audio;
 mod config;
@@ -339,7 +341,7 @@ fn selftest(frames: u32, verbose: bool) -> bool {
         (420, input::Key::Down),
         (430, input::Key::Fire),
     ];
-    let mut ctl = input::Controls::new();
+    let mut ctl = input::Controls::keyboard_only();
     let mut seen = std::collections::HashSet::new();
     for f in 0..600u32 {
         for (at, k) in script {

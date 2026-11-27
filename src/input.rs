@@ -94,6 +94,13 @@ impl Controls {
         }
     }
 
+    /// Keyboard (and scripted) input only, for the self test.
+    pub fn keyboard_only() -> Controls {
+        let mut c = Controls::new();
+        c.joy.enabled = false;
+        c
+    }
+
     pub fn key(&mut self, k: Key, down: bool) {
         let i = k as usize;
         if down && !self.kb.held[i] {
@@ -148,11 +155,15 @@ struct Joy {
     axes: [i16; 8],
     buttons: [bool; 16],
     next_scan: Instant,
+    /// False for scripted runs (the self test): a joystick device on the
+    /// machine, real or virtual, must not steer them.
+    enabled: bool,
 }
 
 impl Joy {
     fn new() -> Joy {
         Joy {
+            enabled: true,
             file: None,
             name: None,
             axes: [0; 8],
@@ -182,6 +193,9 @@ impl Joy {
     }
 
     fn poll(&mut self) {
+        if !self.enabled {
+            return;
+        }
         if self.file.is_none() {
             if Instant::now() >= self.next_scan {
                 self.next_scan = Instant::now() + Duration::from_secs(3);

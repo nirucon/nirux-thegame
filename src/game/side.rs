@@ -16,151 +16,113 @@ const TOP: f32 = HUD_H as f32 + 6.0;
 const BOTTOM: f32 = H as f32 - 6.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Ev {
-    Wisps { y: f32, n: u8, amp: f32, fire: bool },
-    Darts { n: u8 },
-    Hornets { top: bool, n: u8 },
-    Pod { y: f32, drop: PowerUp },
-    Rocks { frames: u32 },
+pub enum Ev {
+    Wisps {
+        y: f32,
+        n: u8,
+        amp: f32,
+        fire: bool,
+    },
+    Darts {
+        n: u8,
+    },
+    Hornets {
+        top: bool,
+        n: u8,
+    },
+    Pod {
+        y: f32,
+        drop: PowerUp,
+    },
+    Rocks {
+        frames: u32,
+    },
     Capital,
-    Boss,
+    /// A gunship that holds up the sector until it is shot down.
+    Gunship(u8),
+    /// A boss of style N that ends the sector.
+    Boss(u8),
+    /// A boss of style N that has to be beaten on the way.
+    MidBoss(u8),
+    /// Shipyard gantries: N frames of steel with a gap to fly through.
+    Gantries {
+        n: u8,
+        gap: f32,
+    },
+    /// A tunnel of rock for this many frames.
+    Tunnel {
+        frames: u32,
+    },
     Text(&'static str),
 }
 
-/// The sector, second by second (60 frames each).
-const SCRIPT: &[(u32, Ev)] = &[
-    (90, Ev::Text("WELCOME TO THE OUTER RIM")),
-    (
-        150,
-        Ev::Wisps {
-            y: 70.0,
-            n: 5,
-            amp: 18.0,
-            fire: false,
-        },
-    ),
-    (
-        400,
-        Ev::Wisps {
-            y: 140.0,
-            n: 5,
-            amp: 18.0,
-            fire: false,
-        },
-    ),
-    (
-        640,
-        Ev::Pod {
-            y: 105.0,
-            drop: PowerUp::Weapon,
-        },
-    ),
-    (
-        820,
-        Ev::Wisps {
-            y: 100.0,
-            n: 7,
-            amp: 40.0,
-            fire: false,
-        },
-    ),
-    (1080, Ev::Hornets { top: true, n: 3 }),
-    (1260, Ev::Hornets { top: false, n: 3 }),
-    (
-        1450,
-        Ev::Wisps {
-            y: 60.0,
-            n: 6,
-            amp: 25.0,
-            fire: true,
-        },
-    ),
-    (
-        1500,
-        Ev::Wisps {
-            y: 150.0,
-            n: 6,
-            amp: 25.0,
-            fire: true,
-        },
-    ),
-    (1750, Ev::Darts { n: 3 }),
-    (1950, Ev::Text("ASTEROID FIELD AHEAD")),
-    (2050, Ev::Rocks { frames: 1100 }),
-    (
-        2500,
-        Ev::Pod {
-            y: 70.0,
-            drop: PowerUp::Shield,
-        },
-    ),
-    (
-        2900,
-        Ev::Pod {
-            y: 140.0,
-            drop: PowerUp::Weapon,
-        },
-    ),
-    (3250, Ev::Hornets { top: true, n: 4 }),
-    (
-        3420,
-        Ev::Wisps {
-            y: 90.0,
-            n: 8,
-            amp: 50.0,
-            fire: true,
-        },
-    ),
-    (3700, Ev::Text("CAPITAL SHIP ON RADAR")),
-    (3800, Ev::Capital),
-    (
-        4300,
-        Ev::Wisps {
-            y: 50.0,
-            n: 5,
-            amp: 12.0,
-            fire: true,
-        },
-    ),
-    (4900, Ev::Darts { n: 3 }),
-    (
-        5400,
-        Ev::Pod {
-            y: 60.0,
-            drop: PowerUp::Bomb,
-        },
-    ),
-    (5500, Ev::Hornets { top: true, n: 4 }),
-    (
-        6300,
-        Ev::Wisps {
-            y: 70.0,
-            n: 7,
-            amp: 30.0,
-            fire: true,
-        },
-    ),
-    (
-        6450,
-        Ev::Wisps {
-            y: 130.0,
-            n: 7,
-            amp: 30.0,
-            fire: true,
-        },
-    ),
-    (6650, Ev::Darts { n: 5 }),
-    (
-        6900,
-        Ev::Pod {
-            y: 100.0,
-            drop: PowerUp::Weapon,
-        },
-    ),
-    (7000, Ev::Hornets { top: false, n: 5 }),
-    (7300, Ev::Text("WARNING: THE WARDEN APPROACHES")),
-    (7500, Ev::Boss),
+/// What makes one side-on sector different from another.
+#[derive(Clone)]
+pub struct SideSpec {
+    pub script: Vec<(u32, Ev)>,
+    pub border: u8,
+    pub hud: u8,
+    pub song: SongId,
+    pub boss_song: SongId,
+    /// Planet colours: light, mid, band (or none).
+    pub planet: Option<[u8; 3]>,
+    /// How fast the world scrolls (stars, gantries, tunnels).
+    pub speed: f32,
+}
+
+pub struct BossStyle {
+    pub name: &'static str,
+    /// Hull, plates, edges.
+    pub cols: [u8; 3],
+    pub cannon: i32,
+    pub core: i32,
+    pub pattern: u8,
+}
+
+pub const STYLES: [BossStyle; 5] = [
+    BossStyle {
+        name: "WARDEN",
+        cols: [DGREY, GREY, LGREY],
+        cannon: 40,
+        core: 75,
+        pattern: 0,
+    },
+    BossStyle {
+        name: "FOUNDRY",
+        cols: [BROWN, ORANGE, YELLOW],
+        cannon: 48,
+        core: 95,
+        pattern: 1,
+    },
+    BossStyle {
+        name: "WARDEN MK II",
+        cols: [BLUE, PURPLE, LRED],
+        cannon: 45,
+        core: 80,
+        pattern: 1,
+    },
+    BossStyle {
+        name: "EXECUTOR",
+        cols: [BLUE, LBLUE, CYAN],
+        cannon: 55,
+        core: 115,
+        pattern: 2,
+    },
+    BossStyle {
+        name: "CORE GUARDIAN",
+        cols: [RED, LRED, WHITE],
+        cannon: 55,
+        core: 110,
+        pattern: 2,
+    },
 ];
+
+#[derive(Clone, Debug)]
+struct Gantry {
+    x: f32,
+    gap_y: f32,
+    gap: f32,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Ek {
@@ -171,6 +133,7 @@ enum Ek {
     Rock { big: bool },
     Turret { u: f32 },
     Generator { u: f32 },
+    Gunship { v: u8 },
 }
 
 #[derive(Clone, Debug)]
@@ -220,6 +183,7 @@ impl Enemy {
             Ek::Rock { big: false } => (5.0, 4.0),
             Ek::Turret { .. } => (7.0, 5.0),
             Ek::Generator { .. } => (13.0, 8.0),
+            Ek::Gunship { .. } => (16.0, 8.0),
         }
     }
     fn points(&self) -> u32 {
@@ -232,6 +196,7 @@ impl Enemy {
             Ek::Rock { big: false } => 50,
             Ek::Turret { .. } => 750,
             Ek::Generator { .. } => 3000,
+            Ek::Gunship { .. } => 6000,
         }
     }
 }
@@ -303,6 +268,8 @@ struct Boss {
     parts: [BossPart; 3],
     dying: u32,
     spin: f32,
+    style: u8,
+    last: bool,
 }
 
 impl Boss {
@@ -355,15 +322,20 @@ pub struct Side {
     banner: Option<(&'static str, u32)>,
     planet_x: f32,
     thrust: f32,
+    spec: SideSpec,
+    st: u32,
+    dist: f32,
+    tunnel: Option<(f32, f32)>,
+    gantries: Vec<Gantry>,
 }
 
 impl Side {
-    pub fn new(diff: Difficulty, seed: u32) -> Side {
+    pub fn new(diff: Difficulty, seed: u32, sector: usize, spec: SideSpec) -> Side {
         let mut fx = Fx::new(seed ^ 0x51de);
         fx.gravity = 0.0;
         Side {
             t: 0,
-            agg: diff.aggression() * 0.8,
+            agg: diff.aggression() * (0.8 + sector as f32 * 0.07),
             diff,
             rng: Rng::new(seed),
             fx,
@@ -390,6 +362,11 @@ impl Side {
             banner: None,
             planet_x: 250.0,
             thrust: 0.0,
+            spec,
+            st: 0,
+            dist: 0.0,
+            tunnel: None,
+            gantries: Vec::new(),
         }
     }
 
@@ -437,7 +414,7 @@ impl Side {
                 e.drop = Some(drop);
                 self.enemies.push(e);
             }
-            Ev::Rocks { frames } => self.rocks_until = self.t + frames,
+            Ev::Rocks { frames } => self.rocks_until = self.st + frames,
             Ev::Capital => {
                 let x = W as f32 + 10.0;
                 for u in [
@@ -460,33 +437,52 @@ impl Side {
                     crippled: false,
                 });
             }
-            Ev::Boss => {
+            Ev::Boss(style) | Ev::MidBoss(style) => {
                 self.boss_started = true;
-                let hp = 40;
+                let bs = &STYLES[(style as usize).min(STYLES.len() - 1)];
+                let part = |hp: i32| BossPart {
+                    hp,
+                    max: hp,
+                    flash: 0,
+                };
                 self.boss = Some(Boss {
                     x: W as f32 + 70.0,
                     y: 105.0,
                     t: 0,
-                    parts: [
-                        BossPart {
-                            hp,
-                            max: hp,
-                            flash: 0,
-                        },
-                        BossPart {
-                            hp,
-                            max: hp,
-                            flash: 0,
-                        },
-                        BossPart {
-                            hp: 75,
-                            max: 75,
-                            flash: 0,
-                        },
-                    ],
+                    parts: [part(bs.cannon), part(bs.cannon), part(bs.core)],
                     dying: 0,
                     spin: 0.0,
+                    style,
+                    last: matches!(ev, Ev::Boss(_)),
                 });
+            }
+            Ev::Gunship(v) => {
+                let mut e = Enemy::new(
+                    Ek::Gunship { v },
+                    W as f32 + 30.0,
+                    100.0,
+                    45 + v as i32 * 10,
+                );
+                e.base = 100.0;
+                e.cd = 90;
+                self.banner = Some(("GUNSHIP INCOMING", self.t));
+                self.enemies.push(e);
+            }
+            Ev::Gantries { n, gap } => {
+                for k in 0..n {
+                    let gap_y = self
+                        .rng
+                        .range(TOP + gap / 2.0 + 6.0, BOTTOM - gap / 2.0 - 6.0);
+                    self.gantries.push(Gantry {
+                        x: W as f32 + 10.0 + k as f32 * 110.0,
+                        gap_y,
+                        gap,
+                    });
+                }
+            }
+            Ev::Tunnel { frames } => {
+                let start = self.dist + W as f32 + 20.0;
+                self.tunnel = Some((start, start + frames as f32 * self.spec.speed));
             }
             Ev::Text(s) => self.banner = Some((s, self.t)),
         }
@@ -707,9 +703,26 @@ impl Side {
                 self.fx.explode(b.x, b.y, 8.0);
                 self.fx.flash = 10;
                 self.fx.shake = 9.0;
-                st.add(25000);
-                self.fx.text(b.x - 30.0, b.y, "25000".into(), YELLOW);
-                self.clear_t = Some(self.t);
+                let pts = if b.last { 25000 } else { 12000 };
+                st.add(pts);
+                self.fx.text(b.x - 30.0, b.y, pts.to_string(), YELLOW);
+                if b.last {
+                    self.clear_t = Some(self.t);
+                } else {
+                    out.music = Some(self.spec.song);
+                    self.pickups.push(Pickup {
+                        x: b.x - 30.0,
+                        y: b.y,
+                        kind: PowerUp::Weapon,
+                        t: 0,
+                    });
+                    self.pickups.push(Pickup {
+                        x: b.x - 10.0,
+                        y: b.y + 20.0,
+                        kind: PowerUp::Bomb,
+                        t: 0,
+                    });
+                }
                 return;
             }
             self.boss = Some(b);
@@ -727,6 +740,30 @@ impl Side {
             p.flash = p.flash.saturating_sub(1);
         }
         let entered = b.x <= 250.0;
+        let pattern = STYLES[(b.style as usize).min(STYLES.len() - 1)].pattern;
+        if entered && pattern >= 1 && !b.core_open() && b.t % ((220.0 / agg) as u32).max(60) == 110
+        {
+            // Heavier styles add a fan from the hull.
+            for k in -2..=2 {
+                self.aimed(b.x - 40.0, b.y, 1.7, k as f32 * 0.18);
+            }
+        }
+        if entered && pattern == 2 && b.core_open() {
+            b.spin += 0.23;
+            if b.t % 5 == 0 {
+                let (cx, cy) = b.core_pos();
+                let a = b.spin;
+                if self.eshots.len() < 160 {
+                    self.eshots.push(Shot {
+                        x: cx,
+                        y: cy,
+                        vx: a.cos() * 1.4,
+                        vy: a.sin() * 1.4,
+                        big: false,
+                    });
+                }
+            }
+        }
         if entered {
             if !b.core_open() {
                 let period = (80.0 / agg) as u32;
@@ -823,6 +860,98 @@ impl Side {
             return true;
         }
         false
+    }
+
+    /// The rock walls of a tunnel at a screen column: (top, bottom).
+    fn tunnel_at(&self, sx: f32) -> Option<(f32, f32)> {
+        let (a, b) = self.tunnel?;
+        let xw = self.dist + sx;
+        if xw < a || xw > b {
+            return None;
+        }
+        let env = ((xw - a).min(b - xw) / 160.0).clamp(0.0, 1.0);
+        let top =
+            TOP - 8.0 + env * (26.0 + 18.0 * (xw * 0.011).sin() + 9.0 * (xw * 0.037 + 1.0).sin());
+        let mut bot = BOTTOM + 8.0
+            - env * (26.0 + 18.0 * (xw * 0.009 + 2.0).sin() + 9.0 * (xw * 0.029).sin());
+        if bot - top < 70.0 {
+            bot = top + 70.0;
+        }
+        Some((top, bot))
+    }
+
+    /// Is there rock or steel at this point?
+    fn solid_at(&self, x: f32, y: f32) -> bool {
+        if let Some((t, b)) = self.tunnel_at(x) {
+            if y < t || y > b {
+                return true;
+            }
+        }
+        self.gantries
+            .iter()
+            .any(|g| (x - g.x - 5.0).abs() < 6.0 && (y - g.gap_y).abs() > g.gap / 2.0)
+    }
+
+    fn draw_world(&self, fb: &mut Fb, ox: i32, oy: i32) {
+        if self.tunnel.is_some() {
+            for sx in 0..W {
+                let Some((t, b)) = self.tunnel_at((sx - ox) as f32) else {
+                    continue;
+                };
+                let xw = (self.dist as i32 + sx - ox).max(0);
+                let (t, b) = (t as i32 + oy, b as i32 + oy);
+                for y in HUD_H..H {
+                    let d = if y < t {
+                        t - y
+                    } else if y > b {
+                        y - b
+                    } else {
+                        continue;
+                    };
+                    let n = hash(xw / 3, y / 3) % 7;
+                    let c = if d < 2 {
+                        LGREY
+                    } else if d < 5 {
+                        if n < 3 {
+                            ORANGE
+                        } else {
+                            BROWN
+                        }
+                    } else if n == 0 {
+                        DGREY
+                    } else if (xw + y) % 11 == 0 {
+                        ORANGE
+                    } else {
+                        BROWN
+                    };
+                    fb.set(sx, y, c);
+                }
+            }
+        }
+        for g in &self.gantries {
+            let x = g.x as i32 + ox;
+            let (g0, g1) = (
+                (g.gap_y - g.gap / 2.0) as i32 + oy,
+                (g.gap_y + g.gap / 2.0) as i32 + oy,
+            );
+            for y in HUD_H..H {
+                if y >= g0 && y <= g1 {
+                    continue;
+                }
+                fb.set(x, y, LGREY);
+                fb.set(x + 1, y, GREY);
+                fb.set(x + 9, y, GREY);
+                fb.set(x + 10, y, DGREY);
+                let k = (y - oy).rem_euclid(10);
+                fb.set(x + 1 + k, y, DGREY);
+                fb.set(x + 9 - k, y, DGREY);
+            }
+            let blink = if self.t % 20 < 10 { LRED } else { RED };
+            fb.rect(x - 1, g0 - 3, 13, 3, YELLOW);
+            fb.rect(x - 1, g1 + 1, 13, 3, YELLOW);
+            fb.set(x + 5, g0 - 4, blink);
+            fb.set(x + 5, g1 + 4, blink);
+        }
     }
 
     fn draw_ship(&self, fb: &mut Fb) {
@@ -1000,6 +1129,17 @@ impl Side {
                     fb.set(x + (dx * 11.0) as i32, y + (dy * 11.0) as i32, YELLOW);
                 }
             }
+            Ek::Gunship { v } => {
+                let pal: [(u8, u8); 4] = match v {
+                    0 => [(2, 6), (10, 14), (12, 11), (15, 12)],
+                    1 => [(2, 8), (10, 7), (12, 9), (15, 8)],
+                    _ => [(2, 4), (10, 10), (12, 6), (15, 14)],
+                };
+                let s = a.dart.doubled().recolor(&pal);
+                spr(fb, &s);
+                let glow = [YELLOW, ORANGE, WHITE][(e.t % 3) as usize];
+                fb.rect(x + 15, y - 1, 3, 3, glow);
+            }
             Ek::Generator { .. } => {
                 let c = if flash { WHITE } else { DGREY };
                 fb.rect(x - 14, y + 2, 29, 7, c);
@@ -1023,7 +1163,8 @@ impl Side {
         };
         let (x, y) = (b.x + ox as f32, b.y + oy as f32);
         let dying = b.dying > 0 && b.dying % 4 < 2;
-        let body = if dying { RED } else { DGREY };
+        let cols = STYLES[(b.style as usize).min(STYLES.len() - 1)].cols;
+        let body = if dying { RED } else { cols[0] };
         let pts = [
             (x - 46.0, y),
             (x - 20.0, y - 34.0),
@@ -1041,10 +1182,10 @@ impl Side {
             (x + 36.0, y + 30.0),
             (x - 14.0, y + 24.0),
         ];
-        fb.poly(&inner, if dying { LRED } else { GREY });
+        fb.poly(&inner, if dying { LRED } else { cols[1] });
         for i in 0..6 {
             let (a, c) = (pts[i], pts[(i + 1) % 6]);
-            fb.line(a.0 as i32, a.1 as i32, c.0 as i32, c.1 as i32, LGREY);
+            fb.line(a.0 as i32, a.1 as i32, c.0 as i32, c.1 as i32, cols[2]);
         }
         // Armour plates and lights.
         for k in 0..5 {
@@ -1113,23 +1254,41 @@ impl Level for Side {
     fn update(&mut self, inp: &Input, st: &mut Stats, out: &mut Out) -> Status {
         self.t += 1;
         if self.t == 1 {
-            out.music = Some(SongId::Level1);
+            out.music = Some(self.spec.song);
         }
-        while self.script < SCRIPT.len() && SCRIPT[self.script].0 <= self.t {
-            let ev = SCRIPT[self.script].1;
+        // The script waits while a gunship or a mid-boss is in the way.
+        let hold = self
+            .enemies
+            .iter()
+            .any(|e| matches!(e.kind, Ek::Gunship { .. }))
+            || self.boss.as_ref().is_some_and(|b| !b.last);
+        if !hold {
+            self.st += 1;
+        }
+        while self.script < self.spec.script.len() && self.spec.script[self.script].0 <= self.st {
+            let ev = self.spec.script[self.script].1;
             self.script += 1;
             self.spawn(ev);
         }
         if self.boss_started && out.music.is_none() {
             if let Some(b) = &self.boss {
                 if b.t == 1 {
-                    out.music = Some(SongId::Boss);
+                    out.music = Some(self.spec.boss_song);
                     out.play(Sfx::Alarm);
                 }
             }
         }
+        let spd = self.spec.speed;
+        self.dist += spd;
+        for g in self.gantries.iter_mut() {
+            g.x -= spd;
+        }
+        self.gantries.retain(|g| g.x > -20.0);
+        if self.tunnel.is_some_and(|(_, e)| self.dist > e + 60.0) {
+            self.tunnel = None;
+        }
         // Rocks drift in during the asteroid field.
-        if self.t < self.rocks_until && self.t % 26 == 0 {
+        if self.st < self.rocks_until && self.t % 26 == 0 && !hold {
             let big = self.rng.chance(0.35);
             let y = self.rng.range(TOP + 10.0, BOTTOM - 10.0);
             let mut r = Enemy::new(
@@ -1143,7 +1302,7 @@ impl Level for Side {
             self.enemies.push(r);
         }
         self.stars
-            .update(if self.boss.is_some() { 1.6 } else { 1.2 }, 0.0);
+            .update(if self.boss.is_some() { spd + 0.4 } else { spd }, 0.0);
         self.planet_x -= 0.04;
         // The player.
         if self.dead > 0 {
@@ -1256,6 +1415,21 @@ impl Level for Side {
                     e.x += e.vx;
                     e.y += (e.t as f32 * 0.03).sin() * 0.4;
                 }
+                Ek::Gunship { .. } => {
+                    if e.x > 250.0 && e.t < 200 {
+                        e.x -= 0.8;
+                    } else {
+                        let k = e.t as f32;
+                        e.y = 105.0 + (k * 0.021).sin() * 55.0;
+                        e.x = 245.0 + (k * 0.013).cos() * 25.0;
+                    }
+                    e.cd -= 1;
+                    if e.cd <= 0 {
+                        e.cd = (75.0 / self.agg) as i32;
+                        // 20 marks a fan, 30 a ring.
+                        fire_from.push((e.x - 14.0, e.y, if e.t % 4 == 0 { 30.0 } else { 20.0 }));
+                    }
+                }
                 Ek::Rock { .. } => {
                     e.x += e.vx;
                     e.y += e.vy;
@@ -1314,7 +1488,21 @@ impl Level for Side {
             }
         }
         for (x, y, aim) in fire_from {
-            if aim < 8.0 {
+            if aim > 25.0 {
+                let r = self.rng.f();
+                self.ring(
+                    x,
+                    y,
+                    if self.diff == Difficulty::Hard { 12 } else { 8 },
+                    1.3,
+                    r,
+                );
+            } else if aim > 15.0 {
+                let n = if self.diff == Difficulty::Easy { 1 } else { 2 };
+                for k in -n..=n {
+                    self.aimed(x, y, 1.9, k as f32 * 0.2);
+                }
+            } else if aim < 8.0 {
                 let sp = 1.6 * (0.7 + 0.3 * self.agg);
                 self.eshots.push(Shot {
                     x: x + aim.cos() * 11.0,
@@ -1335,6 +1523,10 @@ impl Level for Side {
             s.x += s.vx;
             s.y += s.vy;
             if s.x > W as f32 + 8.0 || s.y < TOP - 10.0 || s.y > H as f32 + 4.0 {
+                return false;
+            }
+            if self.solid_at(s.x, s.y) {
+                self.fx.sparks(s.x, s.y, 2, std::f32::consts::PI);
                 return false;
             }
             for i in 0..self.enemies.len() {
@@ -1388,6 +1580,13 @@ impl Level for Side {
                     hit = true;
                 }
             }
+            if self.inv == 0
+                && (self.solid_at(px + 8.0, py)
+                    || self.solid_at(px - 6.0, py - 3.0)
+                    || self.solid_at(px - 6.0, py + 3.0))
+            {
+                hit = true;
+            }
         }
         if hit {
             self.kill_player(st, out);
@@ -1432,8 +1631,11 @@ impl Level for Side {
         fb.clear(BLACK);
         let (ox, oy) = self.fx.offset(self.t);
         self.stars.draw(fb, self.t);
-        draw_planet(fb, self.planet_x as i32, 62, 26);
+        if let Some(pc) = self.spec.planet {
+            draw_planet(fb, self.planet_x as i32, 62, 26, pc);
+        }
         self.draw_capital(fb, ox, oy);
+        self.draw_world(fb, ox, oy);
         for e in &self.enemies {
             if matches!(e.kind, Ek::Turret { .. } | Ek::Generator { .. }) {
                 self.draw_enemy(fb, e, ox, oy);
@@ -1479,7 +1681,12 @@ impl Level for Side {
         if let Some((s, t0)) = self.banner {
             let k = self.t - t0;
             if k < 180 && (k > 20 || k % 4 < 2) {
-                fb.text_center_sh(40, s, if k % 16 < 8 { WHITE } else { CYAN }, BLUE);
+                fb.text_center_sh(
+                    40,
+                    s,
+                    if k % 16 < 8 { WHITE } else { CYAN },
+                    self.spec.border,
+                );
             }
         }
         if self.fx.flash > 0 {
@@ -1490,11 +1697,16 @@ impl Level for Side {
             };
             fb.remap(0, HUD_H, W, H - HUD_H, &map);
         }
-        draw_hud(fb, st, hi, LBLUE);
+        draw_hud(fb, st, hi, self.spec.hud);
         if let Some(b) = &self.boss {
             let (hp, max) = b.hp();
             if b.dying == 0 {
-                draw_boss_bar(fb, "WARDEN", hp, max, self.t);
+                draw_boss_bar(fb, STYLES[(b.style as usize).min(4)].name, hp, max, self.t);
+            }
+        }
+        for e in &self.enemies {
+            if let Ek::Gunship { v } = e.kind {
+                draw_boss_bar(fb, "GUNSHIP", e.hp, 45 + v as i32 * 10, self.t);
             }
         }
     }
@@ -1548,7 +1760,29 @@ impl Level for Side {
             ty = p.y;
             tx = p.x.clamp(30.0, 200.0);
         }
-        let want = if dodge != 0.0 { py + dodge * 20.0 } else { ty };
+        let mut want = if dodge != 0.0 { py + dodge * 20.0 } else { ty };
+        // Steer through gantry gaps and along tunnels.
+        if let Some(g) = self
+            .gantries
+            .iter()
+            .find(|g| g.x > px - 12.0 && g.x < px + 90.0)
+        {
+            want = g.gap_y;
+            tx = tx.min(60.0);
+        }
+        let mut lo = TOP;
+        let mut hi = BOTTOM;
+        for k in [-10.0f32, 10.0, 30.0, 50.0] {
+            if let Some((t, b)) = self.tunnel_at(px + k) {
+                lo = lo.max(t + 12.0);
+                hi = hi.min(b - 12.0);
+            }
+        }
+        if lo < hi {
+            want = want.clamp(lo, hi);
+        } else {
+            want = (lo + hi) / 2.0;
+        }
         i.up = want < py - 3.0;
         i.down = want > py + 3.0;
         i.left = px > tx + 10.0;
@@ -1558,11 +1792,16 @@ impl Level for Side {
     }
 
     fn border(&self) -> u8 {
-        BLUE
+        if self.fx.flash > 2 {
+            WHITE
+        } else {
+            self.spec.border
+        }
     }
 
     fn progress(&self) -> f32 {
-        (self.t as f32 / 7500.0).min(1.0)
+        let end = self.spec.script.last().map(|e| e.0).unwrap_or(1).max(1);
+        (self.st as f32 / end as f32).min(1.0)
     }
 
     fn info(&self) -> String {
@@ -1590,7 +1829,8 @@ impl Level for Side {
 }
 
 /// A ringed planet lit from the upper left, with dithered shading.
-fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32) {
+fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32, pc: [u8; 3]) {
+    let (light, mid, band_c) = (pc[0], pc[1], pc[2]);
     let ring = |fb: &mut Fb, front: bool| {
         for k in 0..360 {
             let a = (k as f32).to_radians();
@@ -1625,18 +1865,18 @@ fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32) {
                 .clamp(0.0, 1.2);
             let dith = (x + y) & 1 == 0;
             let c = if l < 0.25 {
-                LBLUE
+                light
             } else if l < 0.4 {
                 if dith {
-                    LBLUE
+                    light
                 } else {
-                    BLUE
+                    mid
                 }
             } else if l < 0.7 {
-                BLUE
+                mid
             } else if l < 0.85 {
                 if dith {
-                    BLUE
+                    mid
                 } else {
                     BLACK
                 }
@@ -1644,8 +1884,8 @@ fn draw_planet(fb: &mut Fb, cx: i32, cy: i32, r: i32) {
                 BLACK
             };
             // Cloud bands.
-            let band = ((y + r) / 5) % 3 == 1 && c == BLUE && (x / 3 + y) % 4 != 0;
-            fb.set(cx + x, cy + y, if band { PURPLE } else { c });
+            let band = ((y + r) / 5) % 3 == 1 && c == mid && (x / 3 + y) % 4 != 0;
+            fb.set(cx + x, cy + y, if band { band_c } else { c });
         }
     }
     ring(fb, true);

@@ -87,15 +87,210 @@ const MAP: &[&str] = &[
     "TTTT.....==.....TTTT",
 ];
 
+/// Sector 6: the burning city, from the plaza (top) down to the outskirts.
+const CITY: &[&str] = &[
+    "HHHHHHHH....HHHHHHHH",
+    "HHHHHHHH....HHHHHHHH",
+    "#..................#",
+    "#.........X........#",
+    "#..................#",
+    "#..................#",
+    "#..s.....==.....s..#",
+    "#..s.....==.....s..#",
+    "#........==........#",
+    "##..r....==....r..##",
+    "HHHH.....==.....HHHH",
+    "HHHq.....==.....qHHH",
+    "HHHH..F..==..%..HHHH",
+    "RRRRRRRRRRRRRRRRRRRR",
+    "....r....==....r....",
+    "..ss.....==.....ss..",
+    "HHH......==......HHH",
+    "HHq..g...==...g..qHH",
+    "HHH..c...==...c..HHH",
+    ".....%...==..F......",
+    "..n......==......n..",
+    ".........==.........",
+    "HHHH...r.==.r...HHHH",
+    "HHHq.....==.....qHHH",
+    "HHHH..s..==..s..HHHH",
+    "....F.......%.......",
+    "RRRRRRRRRRRRRRRRRRRR",
+    ".........==.........",
+    "..%..r...==...r..%..",
+    "HHHH.....k=.....HHHH",
+    "HHHq.....==.....qHHH",
+    "HHHH.....==.....HHHH",
+    "..s.s.s..==..s.s.s..",
+    ".........==.........",
+    "T.n.....F==.......nT",
+    "..:..g...==...g..:..",
+    "HHHH.c...==...c.HHHH",
+    "HHHH.....==.....HHHH",
+    "...r..%..==..%..r...",
+    ".ss......==......ss.",
+    "RRRRRRRRRRRRRRRRRRRR",
+    ".........==.........",
+    "T..%..r..==..r..%..T",
+    "HHHH.....==.....HHHH",
+    "HHHq.....==.....qHHH",
+    "HHHH..F..==..F..HHHH",
+    "..:......==......:..",
+    "T...r....==....r...T",
+    "..c......==......c..",
+    "HHHHH....==....HHHHH",
+    "HHHHq....==....qHHHH",
+    "HHHHH....==....HHHHH",
+    "....%....==....%....",
+    "T..r.....==.....r..T",
+    "..s......==......s..",
+    ".........==.........",
+    "T...:....==....:...T",
+    "HHHH.....==.....HHHH",
+    "HHHH..r..==..r..HHHH",
+    "HHHH.....==.....HHHH",
+    "..F......==......%..",
+    ".........==.........",
+    "T.......:==:.......T",
+    "TT.......==.......TT",
+];
+
+/// Sector 8, stage three: the heart of the NIRUX core.
+const CORE: &[&str] = &[
+    "####################",
+    "#..................#",
+    "#..................#",
+    "#.........X........#",
+    "#..................#",
+    "#..................#",
+    "#.%..............%.#",
+    "#..................#",
+    "#..s....====....s..#",
+    "##.r............r.##",
+    "###......==......###",
+    "#F#......==......#F#",
+    "#....r...==...r....#",
+    "#..%.....==.....%..#",
+    "#..n.....==.....n..#",
+    "#........==........#",
+    "##..g....==....g..##",
+    "#...ss...==...ss...#",
+    "#.c......==......c.#",
+    "#....r...==...r....#",
+    "#F.......==.......F#",
+    "##..%....k=....%..##",
+    "#........==........#",
+    "#..r.....==.....r..#",
+    "#.sss....==....sss.#",
+    "#..n.....==.....n..#",
+    "#........==........#",
+    "##.r..%..==..%..r.##",
+    "#........==........#",
+    "#.c......==......c.#",
+    "#F..g....==....g..F#",
+    "#........==........#",
+    "##..r....==....r..##",
+    "#........==........#",
+    "#..%.....==.....%..#",
+    "#........==........#",
+    "#........==........#",
+    "##.......==.......##",
+];
+
+pub struct FootStyle {
+    pub name: &'static str,
+    /// Hull, plates, guns, gun light.
+    pub cols: [u8; 4],
+    pub guns: i32,
+    pub core: i32,
+    /// 0 the crawler, 1 a gunship with rotors, 2 the core.
+    pub shape: u8,
+}
+
+pub const FOOT_STYLES: [FootStyle; 3] = [
+    FootStyle {
+        name: "GATEKEEPER",
+        cols: [DGREY, GREY, BLUE, LBLUE],
+        guns: 24,
+        core: 50,
+        shape: 0,
+    },
+    FootStyle {
+        name: "HELI GUNSHIP",
+        cols: [BLUE, LBLUE, DGREY, GREY],
+        guns: 28,
+        core: 60,
+        shape: 1,
+    },
+    FootStyle {
+        name: "NIRUX CORE",
+        cols: [PURPLE, LRED, RED, YELLOW],
+        guns: 34,
+        core: 90,
+        shape: 2,
+    },
+];
+
+/// What makes one on-foot sector different from another.
+pub struct FootSpec {
+    pub map: &'static [&'static str],
+    /// 0 jungle, 1 city, 2 core.
+    pub theme: u8,
+    pub style: usize,
+    pub border: u8,
+    pub hud: u8,
+    pub song: SongId,
+    pub boss_song: SongId,
+    pub intro: &'static str,
+}
+
+pub fn spec(sector: usize) -> FootSpec {
+    match sector {
+        5 => FootSpec {
+            map: CITY,
+            theme: 1,
+            style: 1,
+            border: RED,
+            hud: LRED,
+            song: SongId::Level6,
+            boss_song: SongId::Boss,
+            intro: "WATCH THE TRAINS AND THE ROOFS",
+        },
+        7 => FootSpec {
+            map: CORE,
+            theme: 2,
+            style: 2,
+            border: PURPLE,
+            hud: LRED,
+            song: SongId::Level8,
+            boss_song: SongId::FinalBoss,
+            intro: "STAGE THREE: THE HEART OF THE CORE",
+        },
+        _ => FootSpec {
+            map: MAP,
+            theme: 0,
+            style: 0,
+            border: GREEN,
+            hud: LGREEN,
+            song: SongId::Level3,
+            boss_song: SongId::Boss,
+            intro: "CLEAR THE ROAD TO THE GATE",
+        },
+    }
+}
+
 fn solid_walk(c: u8) -> bool {
     matches!(
         c,
-        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'~'
+        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'~' | b'F' | b'Q'
     )
 }
 
 fn solid_shot(c: u8) -> bool {
-    matches!(c, b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n')
+    matches!(
+        c,
+        b'T' | b'p' | b's' | b'#' | b'%' | b'H' | b'c' | b'n' | b'F'
+    )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -104,6 +299,7 @@ enum Fk {
     Grenadier,
     Nest,
     Tank,
+    Sniper,
 }
 
 #[derive(Clone, Debug)]
@@ -171,9 +367,6 @@ struct Boss {
     dying: u32,
 }
 
-const GUN_HP: i32 = 24;
-const CORE_HP: i32 = 50;
-
 impl Boss {
     fn gun(&self, i: usize) -> (f32, f32) {
         (self.x + if i == 0 { -36.0 } else { 36.0 }, self.y + 14.0)
@@ -217,9 +410,35 @@ pub struct Foot {
     over_t: Option<u32>,
     banner: Option<(&'static str, u32)>,
     tiles: Vec<[u8; 256]>,
+    spec: FootSpec,
+    /// Rail rows: (row, train x, warning frames left, cool down).
+    trains: Vec<(usize, f32, u32, u32)>,
 }
 
-fn tile_index(c: u8) -> usize {
+fn tile_index(c: u8, theme: u8) -> usize {
+    if theme == 1 {
+        return match c {
+            b':' => 14,
+            b'=' | b'k' => 18,
+            b'H' | b'Q' => 12,
+            b'R' => 13,
+            b'%' | b'F' => 20,
+            b's' => 5,
+            b'#' => 6,
+            b'n' => 10,
+            _ => 11,
+        };
+    }
+    if theme == 2 {
+        return match c {
+            b'=' | b'k' => 16,
+            b'#' => 19,
+            b'%' | b'F' => 17,
+            b's' => 6,
+            b'n' => 10,
+            _ => 15,
+        };
+    }
     match c {
         b'.' | b'r' | b'g' | b'X' => 0,
         b':' => 1,
@@ -237,8 +456,9 @@ fn tile_index(c: u8) -> usize {
 
 /// The ground tiles, drawn once.
 fn make_tiles() -> Vec<[u8; 256]> {
+    // Every theme's tiles; tile_index picks.
     let mut v = Vec::new();
-    for kind in 0..11 {
+    for kind in 0..21 {
         let mut t = [0u8; 256];
         for y in 0..16i32 {
             for x in 0..16i32 {
@@ -348,6 +568,125 @@ fn make_tiles() -> Vec<[u8; 256]> {
                             GREEN
                         }
                     }
+                    11 => {
+                        if h % 23 == 0 {
+                            BLACK
+                        } else if h % 9 == 0 {
+                            GREY
+                        } else {
+                            DGREY
+                        }
+                    }
+                    12 => {
+                        if x == 0 || y == 0 {
+                            LGREY
+                        } else if x == 15 || y == 15 {
+                            DGREY
+                        } else if (5..9).contains(&x) && (5..9).contains(&y) {
+                            if (x + y) % 2 == 0 {
+                                DGREY
+                            } else {
+                                BLACK
+                            }
+                        } else if h % 11 == 0 {
+                            LGREY
+                        } else {
+                            GREY
+                        }
+                    }
+                    13 => {
+                        if y == 4 || y == 11 {
+                            LGREY
+                        } else if x % 4 == 0 && (3..13).contains(&y) {
+                            BROWN
+                        } else if h % 5 == 0 {
+                            GREY
+                        } else {
+                            DGREY
+                        }
+                    }
+                    14 => {
+                        if h % 5 == 0 {
+                            GREY
+                        } else if h % 7 == 0 {
+                            LGREY
+                        } else if h % 13 == 0 {
+                            BROWN
+                        } else {
+                            DGREY
+                        }
+                    }
+                    15 => {
+                        if x % 8 == 0 || y % 8 == 0 {
+                            DGREY
+                        } else if (x % 8 == 2 && y % 8 == 2) || h % 17 == 0 {
+                            LGREY
+                        } else {
+                            GREY
+                        }
+                    }
+                    16 => {
+                        if (6..10).contains(&x) {
+                            if (x + y) % 4 == 0 {
+                                CYAN
+                            } else {
+                                LBLUE
+                            }
+                        } else if x == 5 || x == 10 {
+                            BLUE
+                        } else {
+                            DGREY
+                        }
+                    }
+                    17 => {
+                        if x == 0 || y == 0 {
+                            LGREY
+                        } else if x == 15 || y == 15 {
+                            BLACK
+                        } else if (4..12).contains(&x) && (4..12).contains(&y) {
+                            if (x + y) % 3 == 0 {
+                                LRED
+                            } else {
+                                PURPLE
+                            }
+                        } else {
+                            DGREY
+                        }
+                    }
+                    18 => {
+                        if x == 0 && y % 8 < 4 {
+                            YELLOW
+                        } else if h % 9 == 0 {
+                            GREY
+                        } else {
+                            DGREY
+                        }
+                    }
+                    19 => {
+                        if y == 0 {
+                            LBLUE
+                        } else if y % 8 == 7 || x % 16 == 15 {
+                            BLACK
+                        } else if h % 13 == 0 {
+                            PURPLE
+                        } else {
+                            BLUE
+                        }
+                    }
+                    20 => {
+                        let d = (x - 8) * (x - 8) + (y - 8) * (y - 8);
+                        if d < 30 {
+                            if (x / 3 + y / 3) % 2 == 0 {
+                                GREY
+                            } else {
+                                LGREY
+                            }
+                        } else if d < 45 {
+                            BLACK
+                        } else {
+                            DGREY
+                        }
+                    }
                     _ => {
                         // Gun nest: a ring of sandbags around a pit.
                         let d = (x - 8) * (x - 8) + (y - 8) * (y - 8);
@@ -375,8 +714,10 @@ fn make_tiles() -> Vec<[u8; 256]> {
 }
 
 impl Foot {
-    pub fn new(diff: Difficulty, seed: u32) -> Foot {
-        let mut map: Vec<Vec<u8>> = MAP
+    pub fn new(diff: Difficulty, seed: u32, sector: usize) -> Foot {
+        let spec = spec(sector);
+        let mut map: Vec<Vec<u8>> = spec
+            .map
             .iter()
             .map(|r| {
                 let mut v: Vec<u8> = r.bytes().collect();
@@ -390,7 +731,7 @@ impl Foot {
         for (r, row) in map.iter_mut().enumerate() {
             for (c, ch) in row.iter_mut().enumerate() {
                 match *ch {
-                    b'r' | b'g' | b'n' | b'k' => markers.push((c, r, *ch)),
+                    b'r' | b'g' | b'n' | b'k' | b'q' => markers.push((c, r, *ch)),
                     b'X' => boss_row = r,
                     b'c' => crates.push(((c, r), 3)),
                     _ => {}
@@ -398,15 +739,24 @@ impl Foot {
                 if *ch == b'k' {
                     *ch = b'=';
                 }
+                if *ch == b'q' {
+                    *ch = b'Q';
+                }
             }
         }
+        let trains = map
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.iter().all(|&c| c == b'R'))
+            .map(|(i, _)| (i, -400.0, 0, 120))
+            .collect();
         let rows = map.len() as i32;
         let start_y = (rows * T - 40) as f32;
         let mut fx = Fx::new(seed ^ 0xf007);
         fx.gravity = 0.0;
         Foot {
             t: 0,
-            agg: diff.aggression(),
+            agg: diff.aggression() * (0.85 + sector as f32 * 0.04),
             diff,
             rng: Rng::new(seed),
             fx,
@@ -433,8 +783,10 @@ impl Foot {
             boss_row,
             clear_t: None,
             over_t: None,
-            banner: Some(("CLEAR THE ROAD TO THE GATE", 30)),
+            banner: Some((spec.intro, 30)),
             tiles: make_tiles(),
+            spec,
+            trains,
         }
     }
 
@@ -474,6 +826,7 @@ impl Foot {
             Fk::Grenadier => 2,
             Fk::Nest => 8,
             Fk::Tank => 30,
+            Fk::Sniper => 2,
         };
         self.foes.push(Foe {
             kind,
@@ -715,6 +1068,26 @@ impl Foot {
             }
             out.play(Sfx::EnemyShot);
         }
+        if FOOT_STYLES[self.spec.style].shape == 2
+            && b.open()
+            && b.core * 2 < FOOT_STYLES[2].core
+            && b.t % 6 == 0
+        {
+            // The core's last rage: a turning spiral.
+            let a = b.t as f32 * 0.09;
+            let (cx, cy) = b.core();
+            for k in 0..2 {
+                let a = a + k as f32 * std::f32::consts::PI;
+                self.eshots.push(Bullet {
+                    x: cx,
+                    y: cy,
+                    vx: a.cos() * 1.2,
+                    vy: a.sin() * 1.2,
+                    life: 0,
+                    big: false,
+                });
+            }
+        }
         if b.t % 360 == 180 && self.foes.len() < 8 {
             let y = b.y + 30.0;
             self.spawn(Fk::Rifle, 40.0, y);
@@ -729,7 +1102,7 @@ impl Level for Foot {
         self.t += 1;
         let cy_before = self.cy;
         if self.t == 1 {
-            out.music = Some(SongId::Level3);
+            out.music = Some(self.spec.song);
         }
         // Markers coming into view become enemies.
         let top = self.cy - 8.0;
@@ -743,6 +1116,7 @@ impl Level for Foot {
                     b'r' => self.spawn(Fk::Rifle, x, y),
                     b'g' => self.spawn(Fk::Grenadier, x, y),
                     b'n' => self.spawn(Fk::Nest, x, y),
+                    b'q' => self.spawn(Fk::Sniper, x, y + 4.0),
                     _ => {
                         self.spawn(Fk::Tank, x + 8.0, self.cy - 20.0);
                         if let Some(f) = self.foes.last_mut() {
@@ -772,18 +1146,19 @@ impl Level for Foot {
         // The fortress yard: the camera stops, the boss wakes.
         let boss_y = self.boss_row as f32 * 16.0 + 8.0;
         if self.boss.is_none() && self.clear_t.is_none() && self.cy <= 2.0 {
+            let fs = &FOOT_STYLES[self.spec.style];
             self.boss = Some(Boss {
                 x: 160.0,
                 y: boss_y - 26.0,
                 t: 0,
-                guns: [GUN_HP; 2],
-                core: CORE_HP,
+                guns: [fs.guns; 2],
+                core: fs.core,
                 flash: [0; 3],
                 dying: 0,
             });
-            out.music = Some(SongId::Boss);
+            out.music = Some(self.spec.boss_song);
             out.play(Sfx::Alarm);
-            self.banner = Some(("THE GATEKEEPER", self.t));
+            self.banner = Some((fs.name, self.t));
         }
         // The player.
         if self.dead > 0 {
@@ -900,6 +1275,16 @@ impl Level for Foot {
                         acts.push((if f.kind == Fk::Rifle { 0 } else { 1 }, f.x, f.y));
                     }
                 }
+                Fk::Sniper => {
+                    f.fx = dx / d;
+                    f.fy = dy / d;
+                    let on = f.y > self.cy + 4.0 && f.y < self.cy + VIEW as f32;
+                    f.cd -= 1;
+                    if on && f.cd <= 0 {
+                        f.cd = (150.0 / self.agg) as i32 + self.rng.below(60) as i32;
+                        acts.push((4, f.x, f.y));
+                    }
+                }
                 Fk::Nest => {
                     f.fx = dx / d;
                     f.fy = dy / d;
@@ -948,6 +1333,10 @@ impl Level for Foot {
                     self.shoot_at(x, y, 1.8, s, false);
                     out.play(Sfx::EnemyShot);
                 }
+                4 => {
+                    self.shoot_at(x, y, 2.1, 0.0, false);
+                    out.play(Sfx::EnemyShot);
+                }
                 _ => {
                     self.shoot_at(x, y, 1.4, 0.0, true);
                     if self.diff == Difficulty::Hard {
@@ -983,7 +1372,7 @@ impl Level for Foot {
             for f in self.foes.iter_mut() {
                 let r = match f.kind {
                     Fk::Tank => 13.0,
-                    Fk::Nest => 8.0,
+                    Fk::Nest | Fk::Sniper => 8.0,
                     _ => 5.0,
                 };
                 if f.hp > 0 && (s.x - f.x).abs() < r && (s.y - f.y).abs() < r {
@@ -1078,6 +1467,7 @@ impl Level for Foot {
                 Fk::Rifle => (1.0, 150),
                 Fk::Grenadier => (1.0, 300),
                 Fk::Nest => (2.5, 1500),
+                Fk::Sniper => (1.2, 600),
                 Fk::Tank => (5.0, 8000),
             };
             self.fx.explode(x, sy, size);
@@ -1104,6 +1494,47 @@ impl Level for Foot {
                     PowerUp::Points
                 };
                 self.pickups.push(Pickup { x, y, kind, t: 0 });
+            }
+        }
+        // Trains: a warning, then a train along the rails.
+        let view = (self.cy, self.cy + VIEW as f32);
+        let prow = (self.py / 16.0) as usize;
+        let mut train_hits = Vec::new();
+        for tr in self.trains.iter_mut() {
+            let ry = tr.0 as f32 * 16.0 + 8.0;
+            let visible = ry > view.0 - 20.0 && ry < view.1 + 20.0;
+            if tr.1 > -400.0 {
+                tr.1 += 7.0;
+                train_hits.push((tr.1, ry));
+                if tr.1 > W as f32 + 20.0 {
+                    tr.1 = -400.0;
+                    tr.3 = 360 + (tr.0 as u32 * 37) % 200;
+                }
+            } else if tr.2 > 0 {
+                tr.2 -= 1;
+                if tr.2 % 30 == 0 {
+                    out.play(Sfx::Alarm);
+                }
+                if tr.2 == 0 {
+                    tr.1 = -300.0;
+                }
+            } else if visible && prow.abs_diff(tr.0) < 6 {
+                tr.3 = tr.3.saturating_sub(1);
+                if tr.3 == 0 {
+                    tr.2 = 100;
+                }
+            }
+        }
+        for (tx, ty) in train_hits {
+            // The train is 300 px long and runs from tx - 300 to tx.
+            for f in self.foes.iter_mut() {
+                if (f.y - ty).abs() < 9.0 && f.x < tx && f.x > tx - 300.0 && f.kind != Fk::Tank {
+                    f.hp = 0;
+                }
+            }
+            if self.dead == 0 && (self.py - ty).abs() < 10.0 && self.px < tx && self.px > tx - 300.0
+            {
+                self.kill_player(st, out);
             }
         }
         // Enemy bullets.
@@ -1203,7 +1634,7 @@ impl Level for Foot {
                 let ch = self.map[r as usize][c as usize];
                 let sx = c * T + ox;
                 let sy = r * T - cy + HUD_H;
-                let idx = tile_index(ch);
+                let idx = tile_index(ch, self.spec.theme);
                 let tile = &self.tiles[idx];
                 for y in 0..T {
                     let yy = sy + y;
@@ -1285,6 +1716,19 @@ impl Level for Foot {
                         false,
                     );
                 }
+                Fk::Sniper => {
+                    soldier(
+                        fb,
+                        x,
+                        y,
+                        f.fx,
+                        f.fy,
+                        0,
+                        if fl { WHITE } else { GREY },
+                        if fl { WHITE } else { RED },
+                        f.cd < 6,
+                    );
+                }
                 Fk::Nest => {
                     let (gx, gy) = ((f.fx * 9.0) as i32, (f.fy * 9.0) as i32);
                     fb.disc(x, y, 3, if fl { WHITE } else { DGREY });
@@ -1325,8 +1769,38 @@ impl Level for Foot {
                 }
             }
         }
+        // Trains and their warning lights.
+        for tr in &self.trains {
+            let y = tr.0 as i32 * T - cy + HUD_H;
+            if !(HUD_H - 16..H).contains(&y) {
+                continue;
+            }
+            if tr.2 > 0 && tr.2 % 20 < 10 {
+                fb.disc(4 + ox, y + 8, 3, LRED);
+                fb.disc(W - 5 + ox, y + 8, 3, LRED);
+            }
+            if tr.1 > -400.0 {
+                let x1 = tr.1 as i32 + ox;
+                for car in 0..5 {
+                    let x0 = x1 - 300 + car * 60;
+                    fb.rect(x0 + 2, y + 1, 56, 14, if car == 4 { RED } else { DGREY });
+                    fb.frame(x0 + 2, y + 1, 56, 14, LGREY);
+                    for w in 0..5 {
+                        fb.rect(
+                            x0 + 8 + w * 10,
+                            y + 4,
+                            5,
+                            3,
+                            if car == 4 { YELLOW } else { CYAN },
+                        );
+                    }
+                }
+                fb.rect(x1 - 4, y + 5, 4, 6, YELLOW);
+            }
+        }
         // Tree tops over everything on the ground.
         let a = art::get();
+        let burnt = a.tree.recolor(&[(5, 9), (13, 8), (1, 7), (11, 0)]);
         for r in r0..=r1 {
             for c in 0..COLS as i32 {
                 let ch = self.map[r as usize][c as usize];
@@ -1345,14 +1819,36 @@ impl Level for Foot {
                                 }
                             }
                         }
-                        fb.blit(&a.tree, sx + v - 2, sy - 2 + (hash(r, c) % 3) as i32);
+                        let tree = if self.spec.theme == 1 {
+                            &burnt
+                        } else {
+                            &a.tree
+                        };
+                        fb.blit(tree, sx + v - 2, sy - 2 + (hash(r, c) % 3) as i32);
+                    }
+                    b'F' => {
+                        let pal = if self.spec.theme == 2 {
+                            [WHITE, CYAN, LBLUE, BLUE]
+                        } else {
+                            [YELLOW, ORANGE, RED, DGREY]
+                        };
+                        for k in 0..10 {
+                            let h = hash(c * 7 + k, r) as i32;
+                            let life = (self.t as i32 + h) % 18;
+                            let fx = sx + 3 + (h % 10) + ((self.t as i32 / 3 + k) % 3) - 1;
+                            let fy = sy + 12 - life;
+                            fb.set(fx, fy, pal[(life / 5).min(3) as usize]);
+                            fb.set(fx + 1, fy, pal[(life / 6).min(3) as usize]);
+                        }
                     }
                     b'p' => {
                         fb.blit_solid(&a.palm, sx + 1, sy + 4, BLACK);
                         fb.blit(&a.palm, sx - 1, sy + 1);
                     }
                     b'o' => fb.blit(&a.bush, sx + 2, sy + 5),
-                    b'H' if (c + r) % 2 == 0 => fb.hline(sx, sx + 31, sy, YELLOW),
+                    b'H' if self.spec.theme == 0 && (c + r) % 2 == 0 => {
+                        fb.hline(sx, sx + 31, sy, YELLOW)
+                    }
                     _ => {}
                 }
             }
@@ -1390,14 +1886,14 @@ impl Level for Foot {
             };
             fb.remap(0, HUD_H, W, H - HUD_H, &map);
         }
-        draw_hud(fb, st, hi, LGREEN);
+        draw_hud(fb, st, hi, self.spec.hud);
         if let Some(b) = &self.boss {
             if b.dying == 0 {
                 draw_boss_bar(
                     fb,
-                    "GATEKEEPER",
+                    FOOT_STYLES[self.spec.style].name,
                     b.guns.iter().map(|g| (*g).max(0)).sum::<i32>() + b.core.max(0),
-                    GUN_HP * 2 + CORE_HP,
+                    FOOT_STYLES[self.spec.style].guns * 2 + FOOT_STYLES[self.spec.style].core,
                     self.t,
                 );
             }
@@ -1502,7 +1998,7 @@ impl Level for Foot {
         if self.fx.flash > 2 {
             WHITE
         } else {
-            GREEN
+            self.spec.border
         }
     }
 
@@ -1523,17 +2019,52 @@ impl Foot {
     fn draw_boss(&self, fb: &mut Fb, b: &Boss, ox: i32, oy: i32) {
         let (x, y) = (b.x as i32 + ox, self.sy(b.y) + oy);
         let dying = b.dying > 0 && b.dying % 4 < 2;
+        let fs = &FOOT_STYLES[self.spec.style];
+        let (hull, plate) = if dying {
+            (RED, LRED)
+        } else {
+            (fs.cols[0], fs.cols[1])
+        };
+        if fs.shape == 1 {
+            // A gunship seen from above: tail, body, stub wings, rotors.
+            fb.rect(x - 3, y - 46, 6, 30, hull);
+            fb.rect(x - 10, y - 48, 20, 4, plate);
+            fb.rect(x - 40, y + 10, 80, 8, hull);
+            fb.disc(x, y, 22, hull);
+            fb.disc(x, y - 2, 18, plate);
+            fb.disc(x, y + 8, 8, BLACK);
+            let a = b.t as f32 * 0.5;
+            for k in 0..2 {
+                let a = a + k as f32 * std::f32::consts::FRAC_PI_2;
+                let (dx, dy) = (a.cos() * 48.0, a.sin() * 48.0);
+                fb.line(
+                    x - dx as i32,
+                    y - dy as i32,
+                    x + dx as i32,
+                    y + dy as i32,
+                    LGREY,
+                );
+            }
+            fb.disc(x, y, 3, DGREY);
+        } else {
+            self.draw_crawler(fb, x, y, hull, plate, b.t);
+        }
+        self.draw_boss_parts(fb, b, ox, oy);
+    }
+
+    fn draw_crawler(&self, fb: &mut Fb, x: i32, y: i32, hull: u8, plate: u8, t: u32) {
+        let b_t = t;
         // Treads.
         for side in [-54, 42] {
             fb.rect(x + side, y - 24, 12, 48, BLACK);
             for k in 0..8 {
-                let ty = y - 24 + ((k * 6 + (b.t / 3) as i32) % 48);
+                let ty = y - 24 + ((k * 6 + (b_t / 3) as i32) % 48);
                 fb.hline(x + side + 1, x + side + 10, ty, DGREY);
             }
         }
         // Hull.
-        fb.rect(x - 44, y - 22, 88, 44, if dying { RED } else { DGREY });
-        fb.rect(x - 40, y - 18, 80, 36, if dying { LRED } else { GREY });
+        fb.rect(x - 44, y - 22, 88, 44, hull);
+        fb.rect(x - 40, y - 18, 80, 36, plate);
         fb.frame(x - 44, y - 22, 88, 44, LGREY);
         for k in 0..5 {
             fb.hline(x - 38, x + 38, y - 14 + k * 7, DGREY);
@@ -1551,14 +2082,21 @@ impl Foot {
         // Mortar in the middle.
         fb.disc(x, y - 8, 6, BLACK);
         fb.circle(x, y - 8, 6, LGREY);
+    }
+
+    fn draw_boss_parts(&self, fb: &mut Fb, b: &Boss, ox: i32, oy: i32) {
+        let (gun, gun_light) = (
+            FOOT_STYLES[self.spec.style].cols[2],
+            FOOT_STYLES[self.spec.style].cols[3],
+        );
         // Guns.
         for i in 0..2 {
             let (gx, gy) = b.gun(i);
             let (gx, gy) = (gx as i32 + ox, self.sy(gy) + oy);
             if b.guns[i] > 0 {
                 let fl = b.flash[i] > 0 && b.flash[i] % 2 == 1;
-                fb.disc(gx, gy, 7, if fl { WHITE } else { BLUE });
-                fb.disc(gx, gy, 4, if fl { WHITE } else { LBLUE });
+                fb.disc(gx, gy, 7, if fl { WHITE } else { gun });
+                fb.disc(gx, gy, 4, if fl { WHITE } else { gun_light });
                 let (dx, dy) = (
                     self.px - gx as f32,
                     self.py - (gy as f32 + self.cy - HUD_H as f32),

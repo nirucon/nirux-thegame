@@ -155,12 +155,13 @@ fn title(g: &Game, fb: &mut Fb) {
         "START GAME".to_string(),
         "LEVEL SELECT".to_string(),
         format!("DIFFICULTY  {}", g.cfg.difficulty.name()),
+        "CONTROLS".to_string(),
         "OPTIONS".to_string(),
         "HIGH SCORES".to_string(),
         "QUIT".to_string(),
     ];
     for (i, s) in items.iter().enumerate() {
-        menu_item(fb, 88 + i as i32 * 12, s, g.sel == i, t);
+        menu_item(fb, 82 + i as i32 * 11, s, g.sel == i, t);
     }
     // A floor of raster lines under the scroller.
     for (i, &c) in [BLUE, BLACK, LBLUE, BLACK, BLUE, BLUE].iter().enumerate() {
@@ -178,41 +179,126 @@ fn select(g: &Game, fb: &mut Fb) {
         s.update(0.5, 0.0);
         s.draw(fb, t);
     }
-    raster_bar(fb, 14, &RAMP_BLUE);
-    fb.text_big_center(26, "LEVEL SELECT", 2, WHITE, Some(BLUE));
+    raster_bar(fb, 8, &RAMP_BLUE);
+    fb.text_big_center(18, "LEVEL SELECT", 2, WHITE, Some(BLUE));
     let reached = g.save.best_reached() as usize;
     for (i, info) in INFO.iter().enumerate() {
-        let y = 62 + i as i32 * 26;
+        let y = 42 + i as i32 * 14;
         let open = i < reached;
         let sel = g.sel == i;
         if sel {
-            fb.rect(24, y - 4, W - 48, 22, if open { BLUE } else { DGREY });
-            fb.frame(24, y - 4, W - 48, 22, if t % 16 < 8 { LBLUE } else { CYAN });
+            fb.rect(20, y - 3, W - 40, 13, if open { BLUE } else { DGREY });
+            fb.frame(20, y - 3, W - 40, 13, if t % 16 < 8 { LBLUE } else { CYAN });
         }
-        fb.rect(32, y - 1, 12, 15, info.border);
-        fb.text(34, y + 3, &format!("{}", i + 1), WHITE);
+        fb.rect(26, y - 2, 11, 11, info.border);
+        fb.text(28, y, &format!("{}", i + 1), WHITE);
         if open {
-            fb.text_sh(
-                52,
-                y,
-                &format!("SECTOR {}  {}", i + 1, info.name),
-                if sel { THEME_ACCENT } else { WHITE },
-                BLACK,
-            );
-            fb.text(52, y + 9, info.mode, LGREY);
+            let c = if sel { THEME_ACCENT } else { WHITE };
+            fb.text_sh(46, y, info.name, c, BLACK);
         } else {
-            fb.text(52, y, &format!("SECTOR {}  ??????", i + 1), GREY);
-            fb.text(52, y + 9, "LOCKED", DGREY);
+            fb.text(46, y, "LOCKED", DGREY);
         }
     }
-    let y = 62 + LEVELS as i32 * 26 + 4;
-    menu_item(fb, y, "BACK", g.sel == LEVELS, t);
-    fb.text_center(176, "FIVE MORE SECTORS IN THE FULL CAMPAIGN", DGREY);
+    menu_item(fb, 42 + LEVELS as i32 * 14 + 2, "BACK", g.sel == LEVELS, t);
+    if let Some(info) = INFO.get(g.sel) {
+        if g.sel < reached {
+            fb.text_center(170, info.mode, CYAN);
+        } else {
+            fb.text_center(170, "CLEAR THE SECTOR BEFORE TO OPEN IT", GREY);
+        }
+    }
     fb.text_center(
-        188,
+        186,
         &format!("DIFFICULTY {}", g.cfg.difficulty.name()),
         GREY,
     );
+}
+
+/// Keep only what the 8x8 font can draw.
+fn printable(s: &str, max: usize) -> String {
+    s.to_ascii_uppercase()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || " .,:-+/()'".contains(c) {
+                c
+            } else {
+                ' '
+            }
+        })
+        .take(max)
+        .collect()
+}
+
+/// A gamepad, drawn in C64 colours, with the fire and special buttons lit.
+fn pad_picture(fb: &mut Fb, cx: i32, cy: i32, t: u32) {
+    // Body and grips.
+    fb.disc(cx - 34, cy + 6, 14, GREY);
+    fb.disc(cx + 34, cy + 6, 14, GREY);
+    fb.rect(cx - 36, cy - 12, 72, 22, GREY);
+    fb.disc(cx - 34, cy - 2, 12, GREY);
+    fb.disc(cx + 34, cy - 2, 12, GREY);
+    fb.hline(cx - 34, cx + 34, cy - 13, LGREY);
+    // D-pad.
+    fb.rect(cx - 41, cy - 7, 14, 4, BLACK);
+    fb.rect(cx - 36, cy - 12, 4, 14, BLACK);
+    // Sticks.
+    fb.disc(cx - 16, cy + 6, 5, DGREY);
+    fb.disc(cx + 16, cy + 6, 5, DGREY);
+    fb.disc(cx - 16, cy + 6, 3, BLACK);
+    fb.disc(cx + 16, cy + 6, 3, BLACK);
+    // Start and select.
+    fb.rect(cx - 9, cy - 8, 6, 2, DGREY);
+    fb.rect(cx + 4, cy - 8, 6, 2, DGREY);
+    // Face buttons: south fires, east is special.
+    let blink = t % 30 < 15;
+    fb.disc(cx + 34, cy + 1, 3, if blink { LGREEN } else { GREEN });
+    fb.disc(cx + 41, cy - 6, 3, if !blink { LRED } else { RED });
+    fb.disc(cx + 27, cy - 6, 3, LBLUE);
+    fb.disc(cx + 34, cy - 13, 3, YELLOW);
+}
+
+fn controls(g: &Game, fb: &mut Fb) {
+    fb.clear(BLACK);
+    let t = g.t;
+    raster_bar(fb, 4, &RAMP_GREEN);
+    fb.text_big_center(14, "CONTROLS", 2, WHITE, Some(GREEN));
+    pad_picture(fb, 160, 50, t);
+    fb.text(198, 62, "FIRE", LGREEN);
+    fb.text(210, 36, "SPECIAL", LRED);
+    fb.line(195, 64, 194, 52, GREEN);
+    fb.line(208, 40, 202, 44, RED);
+    let rows: [(&str, &str, &str); 8] = [
+        ("MOVE", "ARROWS WASD", "STICK D-PAD"),
+        ("FIRE", "SPACE CTRL Z", "A CROSS RT"),
+        ("SPECIAL", "X SHIFT", "B CIRCLE LT"),
+        ("PAUSE", "ESC P", "START"),
+        ("BACK", "ESC", "SELECT"),
+        ("CONFIRM", "ENTER", "A START"),
+        ("SCREEN", "F11", ""),
+        ("SOUND", "M MUTES", ""),
+    ];
+    fb.text(4, 76, "ACTION", GREY);
+    fb.text(84, 76, "KEYBOARD", GREY);
+    fb.text(196, 76, "GAMEPAD", GREY);
+    fb.hline(4, W - 5, 85, DGREY);
+    for (i, (a, k, p)) in rows.iter().enumerate() {
+        let y = 89 + i as i32 * 9;
+        fb.text(4, y, a, YELLOW);
+        fb.text(84, y, k, WHITE);
+        fb.text(196, y, p, CYAN);
+    }
+    let pad = match &g.pad {
+        crate::pad::Status::Connected(n) => (format!("PAD: {}", printable(n, 34)), LGREEN),
+        crate::pad::Status::NotReadable(_) => {
+            ("PAD FOUND, NOT READABLE: CHECK PERMISSIONS".into(), LRED)
+        }
+        crate::pad::Status::None => ("NO GAMEPAD FOUND (PLUG ONE IN ANY TIME)".into(), GREY),
+    };
+    fb.text_center(164, &printable(&pad.0, 40), pad.1);
+    fb.text_center(176, "FLIGHT: UP, DOWN CHANGE ALTITUDE", LGREY);
+    if t % 40 < 28 {
+        fb.text_center(188, "PRESS FIRE TO GO BACK", WHITE);
+    }
 }
 
 fn options(g: &Game, fb: &mut Fb) {
@@ -337,8 +423,9 @@ fn pause(g: &Game, fb: &mut Fb) {
         let p = (l.progress() * 100.0) as u32;
         fb.text_center(144, &format!("SECTOR {}  {}% DONE", g.lvl + 1, p), LGREY);
     }
-    menu_item(fb, 108, "CONTINUE", g.sel == 0, g.t);
-    menu_item(fb, 122, "QUIT TO TITLE", g.sel == 1, g.t);
+    menu_item(fb, 104, "CONTINUE", g.sel == 0, g.t);
+    menu_item(fb, 117, "CONTROLS", g.sel == 1, g.t);
+    menu_item(fb, 130, "QUIT TO TITLE", g.sel == 2, g.t);
 }
 
 fn clear(g: &Game, fb: &mut Fb) {
@@ -470,39 +557,112 @@ fn entry(g: &Game, fb: &mut Fb) {
     fb.text_center(162, "FIRE NEXT   ENTER DONE", GREY);
 }
 
+const CREDITS: &[&str] = &[
+    "NIRUX",
+    "",
+    "AN ORIGINAL GAME",
+    "FOR THE NIRUX DESKTOP",
+    "",
+    "* THE SECTORS *",
+    "THE OUTER RIM",
+    "GLASS DUNES",
+    "IRON JUNGLE",
+    "THE SHIPYARDS",
+    "ICE PYLONS",
+    "BURNING CITY",
+    "THE GAUNTLET",
+    "THE NIRUX CORE",
+    "",
+    "* THE SOUNDTRACK *",
+    "NIRUX",
+    "OUTER RIM  GLASS DUNES",
+    "IRON JUNGLE  SHIPYARDS",
+    "ICE PYLONS  BURNING CITY",
+    "THE GAUNTLET  THE CORE",
+    "WARDEN  HEART OF NIRUX",
+    "FREEDOM",
+    "",
+    "PLAYED LIVE BY A",
+    "THREE VOICE SYNTHESISER",
+    "WRITTEN FOR THIS GAME",
+    "",
+    "* MADE WITH *",
+    "RUST, X11 AND",
+    "THE 16 COLOURS OF 1982",
+    "",
+    "PIXELS, MUSIC AND CODE",
+    "MADE FOR THE NIRUX SUITE",
+    "",
+    "",
+    "THANK YOU FOR PLAYING",
+    "",
+    "NIRUX II IS COMING",
+];
+
 fn victory(g: &Game, fb: &mut Fb) {
     fb.clear(BLACK);
     let t = g.t;
     if let Ok(mut s) = stars().lock() {
-        s.update(2.0, 0.0);
+        s.update(1.0, 0.0);
         s.draw(fb, t);
     }
-    let ramps: [&[u8]; 3] = [&RAMP_FIRE, &RAMP_GREEN, &RAMP_BLUE];
-    for (i, r) in ramps.iter().enumerate() {
-        let y = 20 + ((t as f32 * 0.05 + i as f32 * 2.1).sin() * 12.0) as i32;
-        raster_bar(fb, y, r);
-    }
-    logo(fb, 34, t);
-    let lines = [
-        "CONGRATULATIONS, PILOT!",
-        "",
-        "THE OUTER RIM, THE GLASS DUNES",
-        "AND THE IRON JUNGLE ARE FREE.",
-        "",
-        "THE FULL CAMPAIGN OF EIGHT SECTORS",
-        "IS ON ITS WAY.",
-        "",
-        &format!("FINAL SCORE {:07}", g.stats.score),
-    ];
-    for (i, l) in lines.iter().enumerate() {
-        if t as usize > 30 + i * 15 {
-            let c = if i == 0 {
-                [YELLOW, WHITE, CYAN][(t as usize / 6) % 3]
-            } else {
-                LGREY
-            };
-            fb.text_center(92 + i as i32 * 10, l, c);
+    if t < 600 {
+        let ramps: [&[u8]; 3] = [&RAMP_FIRE, &RAMP_GREEN, &RAMP_BLUE];
+        for (i, r) in ramps.iter().enumerate() {
+            let y = 20 + ((t as f32 * 0.05 + i as f32 * 2.1).sin() * 12.0) as i32;
+            raster_bar(fb, y, r);
         }
+        logo(fb, 34, t);
+        let score = format!("FINAL SCORE {:07}", g.stats.score);
+        let lines = [
+            "CONGRATULATIONS, PILOT!",
+            "",
+            "THE CORE IS BROKEN AND",
+            "ALL EIGHT SECTORS ARE FREE.",
+            "",
+            "NIRUX IS YOURS AGAIN.",
+            "",
+            &score,
+        ];
+        for (i, l) in lines.iter().enumerate() {
+            if t as usize > 30 + i * 20 {
+                let c = if i == 0 {
+                    [YELLOW, WHITE, CYAN][(t as usize / 6) % 3]
+                } else {
+                    LGREY
+                };
+                fb.text_center(92 + i as i32 * 10, l, c);
+            }
+        }
+        // The ship flies home.
+        let x = (t as i32 * 2) % (W + 80) - 40;
+        fb.blit(&crate::art::get().ship, x, 176);
+        return;
+    }
+    // The credits roll.
+    let k = (t - 600) as i32;
+    for (i, l) in CREDITS.iter().enumerate() {
+        let y = H + i as i32 * 14 - k / 2;
+        if !(-8..H).contains(&y) {
+            continue;
+        }
+        if i == 0 {
+            fb.text_big_center(
+                y - 4,
+                l,
+                2,
+                [YELLOW, WHITE, CYAN, LGREEN][(t as usize / 8) % 4],
+                Some(BLUE),
+            );
+        } else {
+            let c = if l.starts_with('*') { LRED } else { LGREY };
+            fb.text_center(y, l, c);
+        }
+    }
+    for i in 0..3 {
+        let y = 4 + ((t as f32 * 0.04 + i as f32 * 2.0).sin() * 3.0) as i32;
+        raster_bar(fb, y, &RAMP_PURPLE);
+        raster_bar(fb, H - 11 + i % 2, &RAMP_BLUE);
     }
 }
 
@@ -529,5 +689,6 @@ pub fn draw(g: &Game, fb: &mut Fb) {
         Scr::Over => over(g, fb),
         Scr::Entry => entry(g, fb),
         Scr::Victory => victory(g, fb),
+        Scr::Controls => controls(g, fb),
     }
 }

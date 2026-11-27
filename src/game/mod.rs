@@ -1,6 +1,7 @@
 //! The game: the title screen and menus, the sector intros, playing a
 //! sector, pause, sector clear, game over, high score entry and the attract
 //! mode, as one state machine stepped 60 times a second.
+pub mod campaign;
 pub mod common;
 pub mod foot;
 pub mod iso;
@@ -16,7 +17,7 @@ use crate::sfx::Sfx;
 use crate::songs::SongId;
 use common::{Out, Stats, Status};
 
-pub const LEVELS: usize = 3;
+pub const LEVELS: usize = 8;
 
 pub trait Level {
     fn update(&mut self, inp: &Input, st: &mut Stats, out: &mut Out) -> Status;
@@ -39,35 +40,78 @@ pub struct Info {
     pub song: SongId,
 }
 
+const SIDE_TIP: &str = "SPECIAL: SMART BOMB (X KEY, PAD B)";
+const ISO_TIP: &str = "UP, DOWN: ALTITUDE  SPECIAL: BOMB";
+const FOOT_TIP: &str = "SPECIAL: GRENADE (X KEY, PAD B)";
+
 pub const INFO: [Info; LEVELS] = [
     Info {
         name: "THE OUTER RIM",
         mode: "SPACE SHOOTER",
-        tip: ["FLY OVER THE CAPITAL SHIP", "AND BLOW UP ITS GENERATORS"],
+        tip: ["FLY OVER THE CAPITAL SHIP", SIDE_TIP],
         border: BLUE,
         song: SongId::Level1,
     },
     Info {
         name: "GLASS DUNES",
         mode: "ISOMETRIC FLIGHT",
-        tip: ["UP AND DOWN CHANGE ALTITUDE", "WATCH YOUR SHADOW"],
+        tip: ["WATCH YOUR SHADOW ON THE DECK", ISO_TIP],
         border: BROWN,
         song: SongId::Level2,
     },
     Info {
         name: "IRON JUNGLE",
         mode: "COMMANDO ON FOOT",
-        tip: ["FIRE SHOOTS WHERE YOU FACE", "SPECIAL THROWS A GRENADE"],
+        tip: ["FIRE SHOOTS WHERE YOU FACE", FOOT_TIP],
         border: GREEN,
         song: SongId::Level3,
+    },
+    Info {
+        name: "THE SHIPYARDS",
+        mode: "SPACE SHOOTER",
+        tip: ["FLY THROUGH THE GANTRY GAPS", SIDE_TIP],
+        border: ORANGE,
+        song: SongId::Level4,
+    },
+    Info {
+        name: "ICE PYLONS",
+        mode: "ISOMETRIC FLIGHT",
+        tip: ["FENCES SWITCH: LOW, THEN HIGH", ISO_TIP],
+        border: LBLUE,
+        song: SongId::Level5,
+    },
+    Info {
+        name: "BURNING CITY",
+        mode: "COMMANDO ON FOOT",
+        tip: ["RED LIGHTS: A TRAIN IS COMING", FOOT_TIP],
+        border: RED,
+        song: SongId::Level6,
+    },
+    Info {
+        name: "THE GAUNTLET",
+        mode: "SPACE SHOOTER",
+        tip: ["THE ROCK WALLS KILL: STAY CLEAR", SIDE_TIP],
+        border: DGREY,
+        song: SongId::Level7,
+    },
+    Info {
+        name: "THE NIRUX CORE",
+        mode: "THREE STAGES",
+        tip: [
+            "SPACE, THEN FLIGHT, THEN ON FOOT",
+            "BREAK THE CORE TO FREE NIRUX",
+        ],
+        border: PURPLE,
+        song: SongId::Level8,
     },
 ];
 
 pub fn make_level(n: usize, d: Difficulty, seed: u32) -> Box<dyn Level> {
     match n {
-        0 => Box::new(side::Side::new(d, seed)),
-        1 => Box::new(iso::Iso::new(d, seed)),
-        _ => Box::new(foot::Foot::new(d, seed)),
+        0 | 3 | 6 => Box::new(side::Side::new(d, seed, n, campaign::side_spec(n))),
+        1 | 4 => Box::new(iso::Iso::new(d, seed, n)),
+        2 | 5 => Box::new(foot::Foot::new(d, seed, n)),
+        _ => Box::new(campaign::Chain::new(d, seed)),
     }
 }
 
@@ -85,6 +129,7 @@ pub enum Scr {
     Entry,
     Victory,
     Demo,
+    Controls,
 }
 
 pub struct Game {
@@ -111,6 +156,9 @@ pub struct Game {
     pub seed: u32,
     pub persist: bool,
     pub last_place: Option<usize>,
+    /// Where the controls screen goes back to.
+    pub controls_back: Scr,
+    pub pad: crate::pad::Status,
 }
 
 impl Game {
@@ -140,6 +188,8 @@ impl Game {
             seed: 0x1234_5678,
             persist,
             last_place: None,
+            controls_back: Scr::Title,
+            pad: crate::pad::Status::None,
         };
         g.go(Scr::Title);
         g
@@ -168,7 +218,7 @@ impl Game {
             Scr::Intro => self.music(Some(INFO[self.lvl].song)),
             Scr::Clear => self.music(Some(SongId::Clear)),
             Scr::Over => self.music(Some(SongId::GameOver)),
-            Scr::Victory => self.music(Some(SongId::Title)),
+            Scr::Victory => self.music(Some(SongId::Ending)),
             _ => {}
         }
     }
@@ -267,7 +317,7 @@ impl Game {
                 } else {
                     self.idle += 1;
                 }
-                self.menu_nav(&inp, 6);
+                self.menu_nav(&inp, 7);
                 if self.sel == 2 && (inp.p_left || inp.p_right) {
                     self.cfg.difficulty = if inp.p_left {
                         self.cfg.difficulty.prev()
@@ -286,12 +336,16 @@ impl Game {
                             self.cfg.difficulty = self.cfg.difficulty.next();
                             self.cfg_dirty = true;
                         }
-                        3 => self.go(Scr::Options),
-                        4 => self.go(Scr::Scores),
+                        3 => {
+                            self.controls_back = Scr::Title;
+                            self.go(Scr::Controls);
+                        }
+                        4 => self.go(Scr::Options),
+                        5 => self.go(Scr::Scores),
                         _ => self.quit = true,
                     }
                 } else if inp.p_back {
-                    self.sel = 5;
+                    self.sel = 6;
                 }
                 if self.idle > 60 * 22 {
                     self.go(Scr::Scores);
@@ -422,14 +476,30 @@ impl Game {
                 }
             }
             Scr::Pause => {
-                self.menu_nav(&inp, 2);
+                self.menu_nav(&inp, 3);
                 if inp.p_back {
                     self.scr = Scr::Play;
                 } else if ok {
-                    if self.sel == 0 {
-                        self.scr = Scr::Play;
+                    match self.sel {
+                        0 => self.scr = Scr::Play,
+                        1 => {
+                            self.controls_back = Scr::Pause;
+                            self.scr = Scr::Controls;
+                            self.t = 0;
+                        }
+                        _ => self.go(Scr::Title),
+                    }
+                }
+            }
+            Scr::Controls => {
+                if (ok || inp.p_back) && self.t > 10 {
+                    self.sfx(Sfx::MenuSelect);
+                    if self.controls_back == Scr::Pause {
+                        self.scr = Scr::Pause;
+                        self.sel = 1;
                     } else {
                         self.go(Scr::Title);
+                        self.sel = 3;
                     }
                 }
             }
@@ -457,7 +527,7 @@ impl Game {
                 }
             }
             Scr::Victory => {
-                if self.t > 180 && ok {
+                if (self.t > 180 && ok) || self.t > 2300 {
                     self.after_run();
                 }
             }

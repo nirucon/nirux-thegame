@@ -41,6 +41,17 @@ impl Sprite {
         Sprite { w, h, px }
     }
 
+    /// Every pixel recoloured through `map` (index to index).
+    pub fn recolor(&self, map: &[(u8, u8)]) -> Sprite {
+        let mut s = self.clone();
+        for p in s.px.iter_mut() {
+            if let Some((_, to)) = map.iter().find(|(f, _)| f == p) {
+                *p = *to;
+            }
+        }
+        s
+    }
+
     /// Nearest-neighbour doubled in both directions.
     pub fn doubled(&self) -> Sprite {
         let (w, h) = (self.w * 2, self.h * 2);

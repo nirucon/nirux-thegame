@@ -12,6 +12,7 @@ mod font;
 mod game;
 mod input;
 mod music;
+mod pad;
 mod palette;
 mod scale;
 mod sfx;
@@ -209,6 +210,9 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         let mut inp = ctl.frame();
+        if g.pad != ctl.pads.status {
+            g.pad = ctl.pads.status.clone();
+        }
         if o.bot && g.scr == game::Scr::Play {
             if let Some(l) = g.level.as_mut() {
                 inp = l.bot(&g.stats);

@@ -1,10 +1,6 @@
 //! Controls: the keyboard (arrows or WASD, Space, Ctrl or Z to fire, X or
-//! Shift for the special weapon, Enter, Esc) and a joystick or gamepad
-//! through the Linux joystick interface (`/dev/input/js*`), which needs no
-//! extra libraries and is readable by the logged in user on most systems.
-use std::io::Read;
-use std::os::unix::fs::OpenOptionsExt;
-use std::time::{Duration, Instant};
+//! Shift for the special weapon, Enter, Esc) and gamepads (see `pad.rs`),
+//! merged into one state per frame with edges for the menus.
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Input {
@@ -74,7 +70,7 @@ struct State {
 pub struct Controls {
     kb: State,
     pressed: [bool; 8],
-    joy: Joy,
+    pub pads: crate::pad::Pads,
     prev: [bool; 8],
 }
 
@@ -89,7 +85,7 @@ impl Controls {
         Controls {
             kb: State::default(),
             pressed: [false; 8],
-            joy: Joy::new(),
+            pads: crate::pad::Pads::new(),
             prev: [false; 8],
         }
     }
@@ -97,7 +93,7 @@ impl Controls {
     /// Keyboard (and scripted) input only, for the self test.
     pub fn keyboard_only() -> Controls {
         let mut c = Controls::new();
-        c.joy.enabled = false;
+        c.pads.enabled = false;
         c
     }
 
@@ -115,9 +111,9 @@ impl Controls {
 
     /// The state for this frame (call once per frame).
     pub fn frame(&mut self) -> Input {
-        self.joy.poll();
+        self.pads.poll();
         let mut held = self.kb.held;
-        let j = self.joy.held();
+        let j = self.pads.actions();
         for i in 0..8 {
             held[i] |= j[i];
         }
@@ -146,114 +142,6 @@ impl Controls {
             p_start: p[6],
             p_back: p[7],
         }
-    }
-}
-
-struct Joy {
-    file: Option<std::fs::File>,
-    name: Option<String>,
-    axes: [i16; 8],
-    buttons: [bool; 16],
-    next_scan: Instant,
-    /// False for scripted runs (the self test): a joystick device on the
-    /// machine, real or virtual, must not steer them.
-    enabled: bool,
-}
-
-impl Joy {
-    fn new() -> Joy {
-        Joy {
-            enabled: true,
-            file: None,
-            name: None,
-            axes: [0; 8],
-            buttons: [false; 16],
-            next_scan: Instant::now(),
-        }
-    }
-
-    fn scan(&mut self) {
-        if std::env::var_os("NIRUX_NO_JOYSTICK").is_some() {
-            return;
-        }
-        for i in 0..8 {
-            let path = format!("/dev/input/js{i}");
-            if let Ok(f) = std::fs::OpenOptions::new()
-                .read(true)
-                .custom_flags(libc::O_NONBLOCK)
-                .open(&path)
-            {
-                self.file = Some(f);
-                self.name = Some(path);
-                self.axes = [0; 8];
-                self.buttons = [false; 16];
-                return;
-            }
-        }
-    }
-
-    fn poll(&mut self) {
-        if !self.enabled {
-            return;
-        }
-        if self.file.is_none() {
-            if Instant::now() >= self.next_scan {
-                self.next_scan = Instant::now() + Duration::from_secs(3);
-                self.scan();
-            }
-            return;
-        }
-        let mut buf = [0u8; 8 * 32];
-        loop {
-            let Some(f) = self.file.as_mut() else {
-                return;
-            };
-            match f.read(&mut buf) {
-                Ok(0) => break,
-                Ok(n) => {
-                    for e in buf[..n].chunks_exact(8) {
-                        let value = i16::from_le_bytes([e[4], e[5]]);
-                        let kind = e[6] & 0x7f;
-                        let num = e[7] as usize;
-                        match kind {
-                            1 if num < 16 => self.buttons[num] = value != 0,
-                            2 if num < 8 => self.axes[num] = value,
-                            _ => {}
-                        }
-                    }
-                    if n < buf.len() {
-                        break;
-                    }
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
-                Err(_) => {
-                    // Unplugged.
-                    self.file = None;
-                    self.name = None;
-                    self.axes = [0; 8];
-                    self.buttons = [false; 16];
-                    break;
-                }
-            }
-        }
-    }
-
-    /// Left stick or d-pad (axes 6 and 7 on most pads); A or the trigger
-    /// fires, B is the special, Start pauses, Select goes back.
-    fn held(&self) -> [bool; 8] {
-        let t = 12000;
-        let a = &self.axes;
-        let b = &self.buttons;
-        [
-            a[0] < -t || a[6] < -t,
-            a[0] > t || a[6] > t,
-            a[1] < -t || a[7] < -t,
-            a[1] > t || a[7] > t,
-            b[0] || b[2] || b[5],
-            b[1] || b[3] || b[4],
-            b[7] || b[9],
-            b[6] || b[8],
-        ]
     }
 }
 

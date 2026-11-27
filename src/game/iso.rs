@@ -20,7 +20,6 @@ const ZMIN: f32 = 3.0;
 const CAM_SPEED: f32 = 0.8;
 const PLAYER_DF: f32 = 40.0;
 const DROP: i32 = 22;
-const BOSS_AT: f32 = 7300.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Ok {
@@ -43,9 +42,21 @@ struct Obj {
     hp: i32,
     flash: u8,
     cd: i32,
+    /// Sideways speed of a moving wall.
+    vl: f32,
+    /// A fence that swaps between low and high every this many frames.
+    switch: u32,
 }
 
 impl Obj {
+    fn moving(mut self, vl: f32) -> Obj {
+        self.vl = vl;
+        self
+    }
+    fn switching(mut self, every: u32) -> Obj {
+        self.switch = every;
+        self
+    }
     fn new(kind: Ok, f: f32, l: f32, df: f32, dl: f32, h: f32) -> Obj {
         let hp = match kind {
             Ok::Turret => 3,
@@ -62,6 +73,8 @@ impl Obj {
             hp,
             flash: 0,
             cd: 60,
+            vl: 0.0,
+            switch: 0,
         }
     }
     fn solid(&self) -> bool {
@@ -80,6 +93,8 @@ enum Ak {
     Kite,
     Saucer,
     Shard,
+    Sentinel,
+    Bomber,
 }
 
 #[derive(Clone, Debug)]
@@ -129,7 +144,77 @@ struct Boss {
 enum Wave {
     Kites(u8),
     Saucers(u8, f32),
+    Bombers(u8),
+    Sentinel,
     Text(&'static str),
+}
+
+/// What makes one isometric sector different from another.
+pub struct IsoSpec {
+    course: fn(&mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>),
+    deck: fn(i32, i32) -> bool,
+    pub boss_at: f32,
+    pub boss_name: &'static str,
+    pub shards: u8,
+    pub core: i32,
+    pub crystal: [u8; 4],
+    /// Colour map for the ground (deck and what lies below).
+    pub ground: [u8; 16],
+    pub border: u8,
+    pub hud: u8,
+    pub song: SongId,
+    pub boss_song: SongId,
+}
+
+const SAME: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const ICE: [u8; 16] = [0, 1, 4, 3, 4, 5, 6, 3, 14, 6, 10, 14, 15, 13, 14, 1];
+const CORE: [u8; 16] = [0, 15, 2, 3, 4, 5, 6, 10, 4, 0, 10, 0, 11, 13, 14, 12];
+
+pub fn spec(sector: usize) -> IsoSpec {
+    match sector {
+        4 => IsoSpec {
+            course: course_ice,
+            deck: deck_ice,
+            boss_at: 7600.0,
+            boss_name: "REACTOR",
+            shards: 4,
+            core: 80,
+            crystal: [WHITE, LBLUE, BLUE, CYAN],
+            ground: ICE,
+            border: LBLUE,
+            hud: CYAN,
+            song: SongId::Level5,
+            boss_song: SongId::Boss,
+        },
+        7 => IsoSpec {
+            course: course_core,
+            deck: deck_core,
+            boss_at: 3600.0,
+            boss_name: "CORE SPIRE",
+            shards: 5,
+            core: 90,
+            crystal: [LRED, PURPLE, BLUE, WHITE],
+            ground: CORE,
+            border: PURPLE,
+            hud: LRED,
+            song: SongId::Level8,
+            boss_song: SongId::FinalBoss,
+        },
+        _ => IsoSpec {
+            course: build_course,
+            deck,
+            boss_at: 7300.0,
+            boss_name: "MONOLITH",
+            shards: 3,
+            core: 60,
+            crystal: [CYAN, LBLUE, BLUE, WHITE],
+            ground: SAME,
+            border: BROWN,
+            hud: ORANGE,
+            song: SongId::Level2,
+            boss_song: SongId::Boss,
+        },
+    }
 }
 
 pub struct Iso {
@@ -158,6 +243,9 @@ pub struct Iso {
     over_t: Option<u32>,
     banner: Option<(&'static str, u32)>,
     bank: f32,
+    spec: IsoSpec,
+    /// How far the course was held back while a mid-boss fought.
+    off: f32,
 }
 
 /// Where the deck exists (tile coordinates of 16 units).
@@ -323,22 +411,231 @@ fn build_course(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
             7.0,
         ));
     }
+    w.push((6020.0, Wave::Sentinel));
     w.push((6600.0, Wave::Kites(7)));
     w.push((7050.0, Wave::Text("WARNING: THE MONOLITH")));
     o.sort_by(|a, b| a.f0.total_cmp(&b.f0));
     (o, w)
 }
 
+/// Sector 5: an ice deck over a frozen sea.
+fn deck_ice(fi: i32, li: i32) -> bool {
+    if !(0..6).contains(&li) {
+        return false;
+    }
+    let f = fi * 16;
+    if (2300..2900).contains(&f) {
+        return li != 2 && li != 3;
+    }
+    if (5000..5600).contains(&f) {
+        return (1..5).contains(&li) && (f / 16) % 6 != 0;
+    }
+    true
+}
+
+fn course_ice(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
+    let mut o = Vec::new();
+    let mut w = Vec::new();
+    let pair = |o: &mut Vec<Obj>, f: f32, a: f32, b: f32| {
+        o.push(Obj::new(Ok::Turret, f, a, 10.0, 10.0, 7.0));
+        o.push(Obj::new(Ok::Turret, f, b, 10.0, 10.0, 7.0));
+    };
+    let fence = |o: &mut Vec<Obj>, f: f32, sw: u32| {
+        o.push(Obj::new(Ok::Pylon, f - 2.0, -10.0, 8.0, 8.0, ZMAX + 6.0));
+        o.push(Obj::new(Ok::Pylon, f - 2.0, LW + 2.0, 8.0, 8.0, ZMAX + 6.0));
+        o.push(Obj::new(Ok::Fence { z0: 0.0, z1: 24.0 }, f, 0.0, 3.0, LW, 24.0).switching(sw));
+    };
+    w.push((60.0, Wave::Text("ICE PYLONS: WALLS THAT MOVE")));
+    pair(&mut o, 400.0, 10.0, 76.0);
+    w.push((300.0, Wave::Kites(4)));
+    for k in 0..4 {
+        let f = 700.0 + k as f32 * 180.0;
+        o.push(
+            Obj::new(Ok::Wall, f, 8.0 + k as f32 * 14.0, 12.0, 30.0, 40.0).moving(if k % 2 == 0 {
+                0.5
+            } else {
+                -0.5
+            }),
+        );
+    }
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        1150.0,
+        44.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    w.push((1200.0, Wave::Bombers(3)));
+    w.push((1350.0, Wave::Text("FENCES THAT SWITCH: WATCH THEM")));
+    fence(&mut o, 1550.0, 150);
+    fence(&mut o, 1800.0, 110);
+    w.push((1700.0, Wave::Saucers(6, 22.0)));
+    for k in 0..6 {
+        let f = 2000.0 + k as f32 * 70.0;
+        o.push(Obj::new(
+            Ok::Tower,
+            f,
+            rng.range(4.0, 80.0),
+            12.0,
+            12.0,
+            52.0,
+        ));
+    }
+    w.push((2200.0, Wave::Text("THE CRACKED ICE")));
+    w.push((2350.0, Wave::Kites(6)));
+    pair(&mut o, 2600.0, 4.0, 82.0);
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Shield),
+        3000.0,
+        44.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    w.push((3150.0, Wave::Bombers(4)));
+    w.push((3500.0, Wave::Sentinel));
+    for k in 0..5 {
+        let f = 3700.0 + k as f32 * 220.0;
+        let gap = [20.0, 56.0, 34.0, 8.0, 48.0][k];
+        o.push(Obj::new(Ok::Wall, f, 0.0, 12.0, gap, 34.0));
+        o.push(Obj::new(
+            Ok::Wall,
+            f,
+            gap + 32.0,
+            12.0,
+            LW - gap - 32.0,
+            34.0,
+        ));
+        pair(&mut o, f + 90.0, 4.0, 84.0);
+    }
+    w.push((3800.0, Wave::Saucers(7, 40.0)));
+    w.push((4300.0, Wave::Kites(7)));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Bomb),
+        4800.0,
+        30.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    w.push((4900.0, Wave::Text("FENCE STORM")));
+    for k in 0..6 {
+        fence(&mut o, 5100.0 + k as f32 * 170.0, 90 + k * 13);
+    }
+    w.push((5300.0, Wave::Bombers(5)));
+    for k in 0..5 {
+        let f = 6200.0 + k as f32 * 160.0;
+        o.push(Obj::new(Ok::Wall, f, 10.0, 12.0, 34.0, 44.0).moving(0.8));
+        o.push(Obj::new(
+            Ok::Tower,
+            f + 80.0,
+            rng.range(4.0, 80.0),
+            12.0,
+            12.0,
+            54.0,
+        ));
+    }
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        6100.0,
+        70.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    w.push((6500.0, Wave::Kites(8)));
+    w.push((7000.0, Wave::Saucers(8, 30.0)));
+    w.push((7350.0, Wave::Text("WARNING: THE FROZEN REACTOR")));
+    o.sort_by(|a, b| a.f0.total_cmp(&b.f0));
+    (o, w)
+}
+
+/// Sector 8, stage two: the descent to the core.
+fn deck_core(fi: i32, li: i32) -> bool {
+    if !(0..6).contains(&li) {
+        return false;
+    }
+    let f = fi * 16;
+    if (1200..1800).contains(&f) {
+        return li == 0 || li == 5 || (f / 32) % 3 == 0;
+    }
+    true
+}
+
+fn course_core(rng: &mut Rng) -> (Vec<Obj>, Vec<(f32, Wave)>) {
+    let mut o = Vec::new();
+    let mut w = Vec::new();
+    w.push((40.0, Wave::Text("STAGE TWO: THE DESCENT")));
+    w.push((200.0, Wave::Kites(6)));
+    for k in 0..6 {
+        let f = 400.0 + k as f32 * 120.0;
+        o.push(Obj::new(Ok::Wall, f, rng.range(0.0, 40.0), 12.0, 40.0, 38.0).moving(0.7));
+        o.push(Obj::new(
+            Ok::Turret,
+            f + 60.0,
+            rng.range(4.0, 84.0),
+            10.0,
+            10.0,
+            7.0,
+        ));
+    }
+    w.push((900.0, Wave::Bombers(5)));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Weapon),
+        1100.0,
+        44.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    for k in 0..4 {
+        let f = 1250.0 + k as f32 * 150.0;
+        o.push(Obj::new(Ok::Pylon, f - 2.0, -10.0, 8.0, 8.0, ZMAX + 6.0));
+        o.push(Obj::new(Ok::Pylon, f - 2.0, LW + 2.0, 8.0, 8.0, ZMAX + 6.0));
+        o.push(
+            Obj::new(Ok::Fence { z0: 0.0, z1: 24.0 }, f, 0.0, 3.0, LW, 24.0).switching(80 + k * 20),
+        );
+    }
+    w.push((1500.0, Wave::Saucers(8, 34.0)));
+    w.push((1900.0, Wave::Sentinel));
+    o.push(Obj::new(
+        Ok::Silo(PowerUp::Shield),
+        2300.0,
+        44.0,
+        12.0,
+        12.0,
+        12.0,
+    ));
+    for k in 0..6 {
+        let f = 2500.0 + k as f32 * 120.0;
+        o.push(Obj::new(
+            Ok::Tower,
+            f,
+            rng.range(4.0, 80.0),
+            12.0,
+            12.0,
+            56.0,
+        ));
+    }
+    w.push((2700.0, Wave::Kites(8)));
+    w.push((3200.0, Wave::Bombers(6)));
+    w.push((3400.0, Wave::Text("THE CORE SPIRE")));
+    o.sort_by(|a, b| a.f0.total_cmp(&b.f0));
+    (o, w)
+}
+
 impl Iso {
-    pub fn new(diff: Difficulty, seed: u32) -> Iso {
+    pub fn new(diff: Difficulty, seed: u32, sector: usize) -> Iso {
+        let spec = spec(sector);
         let mut rng = Rng::new(seed);
-        let (pending, waves) = build_course(&mut rng);
+        let (pending, waves) = (spec.course)(&mut rng);
         let mut fx = Fx::new(seed ^ 0x150);
         fx.gravity = 0.04;
         Iso {
             t: 0,
             cam: 0.0,
-            agg: diff.aggression(),
+            agg: diff.aggression() * (0.85 + sector as f32 * 0.05),
             diff,
             rng,
             fx,
@@ -361,6 +658,8 @@ impl Iso {
             over_t: None,
             banner: None,
             bank: 0.0,
+            spec,
+            off: 0.0,
         }
     }
 
@@ -376,9 +675,9 @@ impl Iso {
     /// Height of whatever is under a point (for shadows and landing).
     fn ground(&self, f: f32, l: f32) -> Option<f32> {
         let mut h = None;
-        let fi = (f / 16.0).floor() as i32;
+        let fi = ((f - self.off) / 16.0).floor() as i32;
         let li = (l / 16.0).floor() as i32;
-        if deck(fi, li) {
+        if (self.spec.deck)(fi, li) {
             h = Some(0.0);
         }
         for o in &self.objs {
@@ -428,6 +727,37 @@ impl Iso {
                         dir: if from_left { 1.0 } else { -1.0 },
                     });
                 }
+            }
+            Wave::Bombers(n) => {
+                for i in 0..n {
+                    self.air.push(Air {
+                        kind: Ak::Bomber,
+                        f: self.cam + 320.0 + i as f32 * 26.0,
+                        l: 16.0 + (i as f32 * 23.0) % 64.0,
+                        z: 46.0,
+                        base: 0.0,
+                        t: 0,
+                        hp: 3,
+                        flash: 0,
+                        cd: 40 + i as i32 * 9,
+                        dir: 0.0,
+                    });
+                }
+            }
+            Wave::Sentinel => {
+                self.banner = Some(("SENTINEL INCOMING", self.t));
+                self.air.push(Air {
+                    kind: Ak::Sentinel,
+                    f: self.cam + 360.0,
+                    l: 48.0,
+                    z: 30.0,
+                    base: 0.0,
+                    t: 0,
+                    hp: 50,
+                    flash: 0,
+                    cd: 120,
+                    dir: 0.0,
+                });
             }
             Wave::Text(s) => self.banner = Some((s, self.t)),
         }
@@ -585,13 +915,40 @@ impl Iso {
 impl Level for Iso {
     fn update(&mut self, inp: &Input, st: &mut Stats, out: &mut Out) -> Status {
         self.t += 1;
-        if self.t == 1 {
-            out.music = Some(SongId::Level2);
-        }
         if self.boss.is_none() || self.boss.as_ref().is_some_and(|b| b.dying == 0) {
             self.cam += CAM_SPEED;
         } else {
             self.cam += CAM_SPEED * 0.5;
+        }
+        // A sentinel holds the course back while it fights.
+        if self.air.iter().any(|a| a.kind == Ak::Sentinel) {
+            self.off += CAM_SPEED;
+            for o in self.pending.iter_mut() {
+                o.f0 += CAM_SPEED;
+                o.f1 += CAM_SPEED;
+            }
+        }
+        let t = self.t;
+        for o in self.objs.iter_mut() {
+            if o.vl != 0.0 {
+                o.l0 += o.vl;
+                o.l1 += o.vl;
+                if o.l0 < 0.0 || o.l1 > LW {
+                    o.vl = -o.vl;
+                }
+            }
+            if o.switch > 0 {
+                let high = (t / o.switch) % 2 == 1;
+                o.kind = if high {
+                    Ok::Fence {
+                        z0: 30.0,
+                        z1: ZMAX + 4.0,
+                    }
+                } else {
+                    Ok::Fence { z0: 0.0, z1: 24.0 }
+                };
+                o.h = if high { ZMAX + 4.0 } else { 24.0 };
+            }
         }
         // Bring the course into view.
         while self
@@ -604,29 +961,37 @@ impl Level for Iso {
         }
         let cam = self.cam;
         self.objs.retain(|o| o.f1 > cam - 140.0);
-        while self.waves.first().is_some_and(|w| w.0 < self.cam) {
+        while self
+            .waves
+            .first()
+            .is_some_and(|w| w.0 < self.cam - self.off)
+        {
             let w = self.waves.remove(0).1;
             self.spawn_wave(w);
         }
-        if !self.boss_started && self.cam >= BOSS_AT {
+        if self.t == 1 {
+            out.music = Some(self.spec.song);
+        }
+        if !self.boss_started && self.cam - self.off >= self.spec.boss_at {
             self.boss_started = true;
-            out.music = Some(SongId::Boss);
+            out.music = Some(self.spec.boss_song);
             out.play(Sfx::Alarm);
             self.boss = Some(Boss {
                 l: 42.0,
                 t: 0,
-                core_hp: 60,
-                core_max: 60,
+                core_hp: self.spec.core,
+                core_max: self.spec.core,
                 flash: 0,
                 dying: 0,
             });
-            for k in 0..3 {
+            let n = self.spec.shards as i32;
+            for k in 0..n {
                 self.air.push(Air {
                     kind: Ak::Shard,
                     f: 0.0,
                     l: 0.0,
                     z: 0.0,
-                    base: k as f32 * std::f32::consts::TAU / 3.0,
+                    base: k as f32 * std::f32::consts::TAU / n as f32,
                     t: 0,
                     hp: 14,
                     flash: 0,
@@ -708,6 +1073,8 @@ impl Level for Iso {
         // Air enemies.
         let boss_l = self.boss.as_ref().map(|b| b.l);
         let mut afire: Vec<(f32, f32, f32)> = Vec::new();
+        let mut sentinel_fire: Vec<(f32, f32, f32)> = Vec::new();
+        let mut bombs: Vec<(f32, f32, f32)> = Vec::new();
         for a in self.air.iter_mut() {
             a.t += 1;
             a.flash = a.flash.saturating_sub(1);
@@ -721,6 +1088,20 @@ impl Level for Iso {
                     a.l += a.dir * 1.1;
                     a.f += CAM_SPEED;
                     a.z += (a.t as f32 * 0.1).sin() * 0.3;
+                }
+                Ak::Sentinel => {
+                    let df = a.f - cam;
+                    if df > 175.0 {
+                        a.f -= 0.6;
+                    } else {
+                        a.f += CAM_SPEED;
+                    }
+                    a.l = 48.0 + (a.t as f32 * 0.017).sin() * 32.0;
+                    a.z = 30.0 + (a.t as f32 * 0.023).sin() * 12.0;
+                }
+                Ak::Bomber => {
+                    a.f -= 0.4;
+                    a.l += (pl - a.l).clamp(-0.3, 0.3);
                 }
                 Ak::Shard => {
                     let bl = boss_l.unwrap_or(48.0);
@@ -738,8 +1119,14 @@ impl Level for Iso {
                         Ak::Kite => (150.0 / self.agg) as i32,
                         Ak::Saucer => (200.0 / self.agg) as i32,
                         Ak::Shard => (90.0 / self.agg) as i32,
+                        Ak::Sentinel => (85.0 / self.agg) as i32,
+                        Ak::Bomber => (70.0 / self.agg) as i32,
                     } + self.rng.below(50) as i32;
-                    if self.diff != Difficulty::Easy || a.kind != Ak::Saucer {
+                    if a.kind == Ak::Sentinel {
+                        sentinel_fire.push((a.f, a.l, a.z));
+                    } else if a.kind == Ak::Bomber {
+                        bombs.push((a.f, a.l, a.z));
+                    } else if self.diff != Difficulty::Easy || a.kind != Ak::Saucer {
                         afire.push((a.f, a.l, a.z));
                     }
                 }
@@ -748,6 +1135,27 @@ impl Level for Iso {
         for (f, l, z) in afire {
             self.fire_at_player(f, l, z, 1.4, 0.0);
             out.play(Sfx::EnemyShot);
+        }
+        for (f, l, z) in sentinel_fire {
+            let n = if self.diff == Difficulty::Hard { 7 } else { 5 };
+            for k in 0..n {
+                let s = (k as f32 - (n - 1) as f32 / 2.0) * 0.3;
+                self.fire_at_player(f - 10.0, l, z, 1.3, s);
+            }
+            out.play(Sfx::EnemyShot);
+        }
+        for (f, l, z) in bombs {
+            if self.eshots.len() < 100 {
+                self.eshots.push(Shot {
+                    f,
+                    l,
+                    z,
+                    vf: CAM_SPEED * 0.6,
+                    vl: 0.0,
+                    vz: -0.7,
+                    life: 0,
+                });
+            }
         }
         self.update_boss(st, out);
         // Player shots.
@@ -852,6 +1260,35 @@ impl Level for Iso {
             }
             true
         });
+        self.air.retain(|a| {
+            if a.hp <= 0 {
+                let pts = match a.kind {
+                    Ak::Kite => 300,
+                    Ak::Saucer => 200,
+                    Ak::Shard => 4000,
+                    Ak::Sentinel => 8000,
+                    Ak::Bomber => 500,
+                };
+                kills.push((
+                    a.f,
+                    a.l,
+                    a.z,
+                    match a.kind {
+                        Ak::Sentinel => 6.0,
+                        Ak::Shard => 3.0,
+                        _ => 1.3,
+                    },
+                    pts,
+                ));
+                if a.kind == Ak::Sentinel {
+                    drops.push((a.f, a.l, PowerUp::Weapon));
+                    drops.push((a.f + 10.0, a.l + 12.0, PowerUp::Shield));
+                }
+                return false;
+            }
+            let df = a.f - cam;
+            df > -60.0 && df < 420.0 && a.l > -160.0 && a.l < LW + 160.0
+        });
         for (f, l, p) in drops {
             self.pickups.push(Pickup {
                 f,
@@ -861,25 +1298,6 @@ impl Level for Iso {
                 t: 0,
             });
         }
-        self.air.retain(|a| {
-            if a.hp <= 0 {
-                let pts = match a.kind {
-                    Ak::Kite => 300,
-                    Ak::Saucer => 200,
-                    Ak::Shard => 4000,
-                };
-                kills.push((
-                    a.f,
-                    a.l,
-                    a.z,
-                    if a.kind == Ak::Shard { 3.0 } else { 1.3 },
-                    pts,
-                ));
-                return false;
-            }
-            let df = a.f - cam;
-            df > -60.0 && df < 420.0 && a.l > -160.0 && a.l < LW + 160.0
-        });
         for (f, l, z, size, pts) in kills {
             let (x, y) = self.proj(f, l, z);
             self.fx.explode(x, y, size);
@@ -981,7 +1399,7 @@ impl Level for Iso {
         let pf = self.pf();
         if self.dead == 0 {
             if let Some(g) = self.ground(pf, self.l) {
-                self.draw_plane(fb, pf, self.l, g, ox, oy, true, false);
+                self.draw_plane(fb, pf, self.l, g, ox, oy, true, false, 1.35);
             }
         }
         for a in &self.air {
@@ -1041,7 +1459,7 @@ impl Level for Iso {
                 }
                 _ => {
                     if !(self.inv > 0 && self.inv < 140 && (self.t / 3) % 2 == 0) {
-                        self.draw_plane(fb, pf, self.l, self.z, ox, oy, false, false);
+                        self.draw_plane(fb, pf, self.l, self.z, ox, oy, false, false, 1.35);
                     }
                 }
             }
@@ -1061,7 +1479,12 @@ impl Level for Iso {
         if let Some((s, t0)) = self.banner {
             let k = self.t - t0;
             if k < 170 && (k > 20 || k % 4 < 2) {
-                fb.text_center_sh(30, s, if k % 16 < 8 { WHITE } else { YELLOW }, BROWN);
+                fb.text_center_sh(
+                    30,
+                    s,
+                    if k % 16 < 8 { WHITE } else { YELLOW },
+                    self.spec.border,
+                );
             }
         }
         if self.fx.flash > 0 {
@@ -1082,7 +1505,12 @@ impl Level for Iso {
             fb.set(ax + 3, y, DGREY);
         }
         fb.rect(ax, zy - 1, 4, 3, if self.z < 8.0 { LRED } else { YELLOW });
-        draw_hud(fb, st, hi, ORANGE);
+        draw_hud(fb, st, hi, self.spec.hud);
+        for a in &self.air {
+            if a.kind == Ak::Sentinel {
+                draw_boss_bar(fb, "SENTINEL", a.hp, 50, self.t);
+            }
+        }
         if let Some(b) = &self.boss {
             if b.dying == 0 {
                 let shard: i32 = self
@@ -1091,7 +1519,13 @@ impl Level for Iso {
                     .filter(|a| a.kind == Ak::Shard)
                     .map(|a| a.hp.max(0))
                     .sum();
-                draw_boss_bar(fb, "MONOLITH", b.core_hp + shard, b.core_max + 42, self.t);
+                draw_boss_bar(
+                    fb,
+                    self.spec.boss_name,
+                    b.core_hp + shard,
+                    b.core_max + 14 * self.spec.shards as i32,
+                    self.t,
+                );
             }
         }
     }
@@ -1178,12 +1612,12 @@ impl Level for Iso {
         if self.fx.flash > 2 {
             WHITE
         } else {
-            BROWN
+            self.spec.border
         }
     }
 
     fn progress(&self) -> f32 {
-        (self.cam / BOSS_AT).min(1.0)
+        ((self.cam - self.off) / self.spec.boss_at).min(1.0)
     }
 
     fn info(&self) -> String {
@@ -1209,6 +1643,7 @@ impl Iso {
     /// from textures made once.
     fn draw_ground(&self, fb: &mut Fb, ox: i32, oy: i32) {
         let tex = textures();
+        let gmap = self.spec.ground;
         let cam = self.cam;
         let t = self.t;
         let blink = (t / 20) as usize;
@@ -1230,6 +1665,7 @@ impl Iso {
             let df = (xa0 + 2.0 * ya) * 0.5;
             let l = (xa0 - 2.0 * ya) * 0.5;
             let mut ff = ((cam + df) * ONE) as i32;
+            let offf = (self.off * ONE) as i32;
             let mut lf = (l * ONE) as i32;
             let mut pf = ((cam + df) * 0.45 * ONE) as i32;
             let mut pl = (l * 0.45 * ONE) as i32;
@@ -1242,7 +1678,7 @@ impl Iso {
                     let h = hash(fi, li) as usize;
                     tile = (
                         (fi, li),
-                        deck(fi, li),
+                        (self.spec.deck)(((ff - offf) >> 20) as i32, li),
                         (h % 11) * 2 + ((fi + li) & 1) as usize,
                     );
                 }
@@ -1300,7 +1736,7 @@ impl Iso {
                     }
                 };
                 if y >= HUD_H {
-                    fb.px[row + xi] = c;
+                    fb.px[row + xi] = gmap[(c & 15) as usize];
                 }
                 ff += step;
                 lf += step;
@@ -1532,6 +1968,7 @@ impl Iso {
         oy: i32,
         shadow: bool,
         enemy: bool,
+        scale: f32,
     ) {
         let p = |df: f32, dl: f32, dz: f32| {
             let (x, y) = self.proj(f + df, l + dl, z + dz);
@@ -1539,7 +1976,7 @@ impl Iso {
         };
         let dir = if enemy { -1.0 } else { 1.0 };
         let bank = if enemy { 0.0 } else { self.bank * 2.0 };
-        let k = if enemy { 1.0 } else { 1.35 };
+        let k = scale;
         let nose = p(10.0 * dir * k, 0.0, 0.0);
         let wl = p(-6.0 * dir * k, -9.0 * k, bank);
         let wr = p(-6.0 * dir * k, 9.0 * k, -bank);
@@ -1594,7 +2031,7 @@ impl Iso {
                     let (x, y) = self.proj(a.f, a.l, a.z);
                     fb.disc(x as i32 + ox, y as i32 + oy, 5, WHITE);
                 } else {
-                    self.draw_plane(fb, a.f, a.l, a.z, ox, oy, false, true);
+                    self.draw_plane(fb, a.f, a.l, a.z, ox, oy, false, true, 1.0);
                 }
             }
             Ak::Saucer => {
@@ -1618,6 +2055,15 @@ impl Iso {
                 fb.disc(x, y - 3, 2, if fl { WHITE } else { CYAN });
                 let k = (self.t / 4 + a.base as u32) % 4;
                 fb.set(x - 6 + k as i32 * 4, y, YELLOW);
+            }
+            Ak::Sentinel | Ak::Bomber => {
+                let k = if a.kind == Ak::Sentinel { 2.4 } else { 1.5 };
+                if fl {
+                    let (x, y) = self.proj(a.f, a.l, a.z);
+                    fb.disc(x as i32 + ox, y as i32 + oy, (5.0 * k) as i32, WHITE);
+                } else {
+                    self.draw_plane(fb, a.f, a.l, a.z, ox, oy, false, true, k);
+                }
             }
             Ak::Shard => {
                 let (x, y) = self.proj(a.f, a.l, a.z);
@@ -1657,11 +2103,7 @@ impl Iso {
             0.0
         };
         let fl = b.flash > 0 && b.flash % 2 == 0;
-        let cols = if fl {
-            [WHITE; 4]
-        } else {
-            [CYAN, LBLUE, BLUE, WHITE]
-        };
+        let cols = if fl { [WHITE; 4] } else { self.spec.crystal };
         // A tall crystal: three stacked boxes tapering upwards.
         self.iso_box(
             fb,

@@ -57,6 +57,7 @@ pub struct Video {
     net_wm_state: Atom,
     net_fullscreen: Atom,
     has_wm: bool,
+    theme_atom: Atom,
     shm: Option<Shm>,
     shm_ok: bool,
     min_keycode: u8,
@@ -88,6 +89,7 @@ impl Video {
             "_NET_WM_PID",
             "_NET_SUPPORTING_WM_CHECK",
             "_NET_WM_ICON",
+            "_NIRUWM_THEME",
         ];
         let cookies: Vec<_> = names
             .iter()
@@ -199,6 +201,7 @@ impl Video {
             net_wm_state: a[4],
             net_fullscreen: a[5],
             has_wm,
+            theme_atom: a[9],
             shm: None,
             shm_ok,
             min_keycode,
@@ -243,6 +246,18 @@ impl Video {
         }
         self.c.flush()?;
         Ok(())
+    }
+
+    /// The theme NIRUWM publishes on the root window, if any.
+    pub fn root_theme(&self) -> Option<String> {
+        let r = self
+            .c
+            .get_property(false, self.root, self.theme_atom, AtomEnum::ANY, 0, 64)
+            .ok()?
+            .reply()
+            .ok()?;
+        let s = String::from_utf8(r.value).ok()?;
+        (!s.is_empty()).then_some(s)
     }
 
     fn keysym(&self, keycode: u8) -> u32 {

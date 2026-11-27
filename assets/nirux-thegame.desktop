@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=NIRUX
+GenericName=Arcade Shooter
+Comment=An original Commodore 64 style shooter with its own SID-style music
+Exec=nirux-thegame
+Icon=nirux-thegame
+Terminal=false
+Categories=Game;ArcadeGame;
+Keywords=c64;commodore;shooter;retro;arcade;sid;chiptune;nirux;
+StartupNotify=false
+StartupWMClass=nirux-thegame

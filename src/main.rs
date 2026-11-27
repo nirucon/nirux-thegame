@@ -147,7 +147,7 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
     }
     let save = config::Save::load();
     let mut vid = video::Video::open(cfg.fullscreen)?;
-    let theme = config::theme_colors(None);
+    let theme = config::theme_colors(vid.root_theme().as_deref());
     let lut = palette::Lut::new(theme);
     let snd = audio::Audio::start(&cfg.audio);
     snd.send(audio::Cmd::Volume {
@@ -319,7 +319,7 @@ fn selftest(frames: u32, verbose: bool) -> bool {
                     l.info()
                 );
             }
-            if per > 4.0 {
+            if per > 4.0 && !cfg!(debug_assertions) {
                 println!("  too slow");
                 ok = false;
             }

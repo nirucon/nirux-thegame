@@ -304,9 +304,9 @@ impl Synth {
         let delay = (FS * 0.29) as usize;
         let mut s = Synth {
             v: [
-                Voice::new(-0.35, 1),
-                Voice::new(0.0, 2),
-                Voice::new(0.35, 3),
+                Voice::new(0.0, 1),
+                Voice::new(-0.32, 2),
+                Voice::new(0.3, 3),
                 Voice::new(-0.1, 4),
                 Voice::new(0.1, 5),
             ],
@@ -415,8 +415,8 @@ impl Synth {
                 self.dl[self.dpos] = send_l * 0.5 + self.lp_l * 0.34;
                 self.dr[self.dpos] = send_r * 0.5 + self.lp_r * 0.34;
                 self.dpos = (self.dpos + 1) % n;
-                l += el * 0.32;
-                r += er * 0.32;
+                l += el * 0.26;
+                r += er * 0.26;
             }
             // DC blocker, then a soft limiter above -2 dBFS.
             let yl = l - self.dc[0] + 0.995 * self.dc[1];

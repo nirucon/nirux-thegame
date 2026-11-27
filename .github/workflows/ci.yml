@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xdotool x11-utils x11-apps python3
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --locked --release --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --release
+      - name: Release build
+        run: cargo build --release --locked
+      - name: Render the soundtrack
+        run: |
+          for s in title level1 level2 level3 boss gameover clear; do
+            target/release/nirux-thegame --render-wav "$s" "$RUNNER_TEMP/$s.wav" 20
+          done
+      - name: End-to-end X11 test
+        run: NIRUX_TEST_LOG="$RUNNER_TEMP/xvfb-trace.log" sh tests/xvfb.sh target/release/nirux-thegame 99
+      - name: Shell scripts
+        run: bash -n install.sh && bash -n uninstall.sh && sh -n tests/xvfb.sh
+      - name: Keep the trace of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xvfb-trace
+          path: ${{ runner.temp }}/xvfb-trace.log
+          if-no-files-found: ignore
+          retention-days: 1
+
+  msrv:
+    # Cargo.toml declares rust-version 1.85, which is also Debian 13's rustc.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85
+      - name: Tests on the declared rust-version
+        run: cargo test --locked

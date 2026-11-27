@@ -91,8 +91,8 @@ fn kit(bright: f32) -> Vec<Instr> {
         Instr {
             wave: Tri,
             adsr: [0, 6, 0, 2],
-            prog: vec![st(Noise, Pitch::Abs(96.0), 1), st(Tri, Pitch::Abs(50.0), 1)],
-            slide: -2.6,
+            prog: vec![st(Noise, Pitch::Abs(96.0), 1), st(Tri, Pitch::Abs(57.0), 1)],
+            slide: -3.2,
             vol: 1.25,
             ..Default::default()
         },

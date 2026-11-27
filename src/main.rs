@@ -168,7 +168,11 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
     let mut next = Instant::now();
     let mut muted = false;
     let mut visible = true;
+    let debug = std::env::var_os("NIRUX_DEBUG").is_some();
+    let mut prof = [Duration::ZERO; 3];
+    let mut prof_n = 0u32;
     loop {
+        let p0 = Instant::now();
         for ev in vid.poll()? {
             match ev {
                 video::Ev::Key { sym, down } => {
@@ -221,9 +225,32 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
         {
             break;
         }
+        let p1 = Instant::now();
         if visible {
             g.draw(&mut fb);
+        }
+        let p2 = Instant::now();
+        if visible {
             vid.present(&fb, &lut, g.border(), g.cfg.crt)?;
+        }
+        if debug {
+            prof[0] += p1 - p0;
+            prof[1] += p2 - p1;
+            prof[2] += p2.elapsed();
+            prof_n += 1;
+            if prof_n == 300 {
+                let ms = |d: Duration| d.as_secs_f64() * 1000.0 / prof_n as f64;
+                eprintln!(
+                    "frame: events+update {:.3} ms, draw {:.3} ms, present {:.3} ms (window {}x{})",
+                    ms(prof[0]),
+                    ms(prof[1]),
+                    ms(prof[2]),
+                    vid.w,
+                    vid.h
+                );
+                prof = [Duration::ZERO; 3];
+                prof_n = 0;
+            }
         }
         // A fixed 60 Hz step; sleep until the next frame is due.
         next += frame;

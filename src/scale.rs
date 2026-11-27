@@ -109,3 +109,25 @@ mod tests {
         assert_eq!(dst[2 * ow], 0xffffff);
     }
 }
+
+#[cfg(test)]
+mod bench {
+    use super::*;
+    #[test]
+    #[ignore]
+    fn upscale_speed() {
+        let lut = Lut::new([0, 0, 0]);
+        let src: Vec<u8> = (0..(W * H) as usize).map(|i| (i % 16) as u8).collect();
+        for s in [3, 5, 8] {
+            let mut dst = vec![0u32; (W * H * s * s) as usize];
+            let t = std::time::Instant::now();
+            for _ in 0..300 {
+                upscale(&src, &lut, s, true, &mut dst);
+            }
+            println!(
+                "scale {s}: {:.3} ms per frame",
+                t.elapsed().as_secs_f64() * 1000.0 / 300.0
+            );
+        }
+    }
+}

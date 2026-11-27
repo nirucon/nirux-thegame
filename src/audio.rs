@@ -164,7 +164,16 @@ fn run(mut sink: Sink, rx: Receiver<Cmd>, custom: &str) {
     let mut f = vec![0f32; 256 * 2];
     let mut pcm = vec![0i16; 256 * 2];
     let mut skip = 0;
+    // The sink normally paces this thread; a sink that swallows anything
+    // (a file, a big buffer) must not make it spin, so it never runs more
+    // than a little ahead of the clock.
+    let start = std::time::Instant::now();
+    let mut written = 0u64;
     loop {
+        let ahead = written as f64 / RATE as f64 - start.elapsed().as_secs_f64();
+        if ahead > 0.12 {
+            std::thread::sleep(std::time::Duration::from_secs_f64(ahead - 0.08));
+        }
         loop {
             match rx.try_recv() {
                 Ok(Cmd::Quit) => return,
@@ -177,6 +186,7 @@ fn run(mut sink: Sink, rx: Receiver<Cmd>, custom: &str) {
         for (o, x) in pcm.iter_mut().zip(&f) {
             *o = (x * 32767.0).round().clamp(-32768.0, 32767.0) as i16;
         }
+        written += (pcm.len() / 2) as u64;
         if sink.write(&pcm).is_err() {
             // The player went away: try the next program once or twice.
             skip += 1;
@@ -260,6 +270,43 @@ mod tests {
             let rms = (sum / n as f64).sqrt();
             assert!(peak < 0.96, "{id:?} peak {peak}");
             assert!(rms > 0.02, "{id:?} too quiet: {rms}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod balance {
+    use super::*;
+    /// `cargo test --release balance -- --ignored --nocapture` prints the
+    /// level of each voice alone, to check the mix without speakers.
+    #[test]
+    #[ignore]
+    fn voice_levels() {
+        for &id in songs::ALL {
+            let mut line = format!("{:9}", id.name());
+            for solo in 0..3 {
+                let mut eng = Engine::new();
+                eng.synth.echo = false;
+                eng.handle(Cmd::Music(Some(id)));
+                let mut f = vec![0f32; 4410 * 2];
+                let mut sum = 0f64;
+                let mut n = 0;
+                for _ in 0..300 {
+                    for v in 0..3 {
+                        if v != solo {
+                            eng.synth.v[v].vol = 0.0;
+                        }
+                    }
+                    eng.render(&mut f);
+                    for x in &f {
+                        sum += (*x as f64).powi(2);
+                        n += 1;
+                    }
+                }
+                let db = 10.0 * (sum / n as f64).max(1e-12).log10();
+                line += &format!("  v{} {:6.1} dB", solo + 1, db);
+            }
+            println!("{line}");
         }
     }
 }

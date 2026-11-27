@@ -12,7 +12,7 @@ name = "nirux-thegame"
 path = "src/main.rs"
 
 [dependencies]
-x11rb = { version = "0.13", features = ["shm"] }
+x11rb = { version = "0.13", features = ["shm", "render"] }
 libc = "0.2"
 
 [profile.release]

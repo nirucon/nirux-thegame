@@ -294,29 +294,31 @@ fn intro(g: &Game, fb: &mut Fb) {
         let y = ((t as i32 * 2 + i * 40) % 260) - 30;
         raster_bar(fb, y, ramp);
     }
-    fb.rect(0, 40, W, 120, BLACK);
-    fb.hline(0, W - 1, 40, info.border);
-    fb.hline(0, W - 1, 159, info.border);
+    fb.rect(0, 36, W, 134, BLACK);
+    fb.hline(0, W - 1, 36, info.border);
+    fb.hline(0, W - 1, 169, info.border);
     let show = t.min(60) as i32;
     let s = format!("SECTOR {}", g.lvl + 1);
     let x = W / 2 - text_w(&s) * 3 / 2;
-    fb.text_big(x - (60 - show) * 6 + 3, 52 + 3, &s, 3, info.border);
-    fb.text_big(x - (60 - show) * 6, 52, &s, 3, WHITE);
+    fb.text_big(x - (60 - show) * 6 + 3, 46 + 3, &s, 3, info.border);
+    fb.text_big(x - (60 - show) * 6, 46, &s, 3, WHITE);
     if t > 30 {
-        fb.text_big_center(86, info.name, 2, YELLOW, Some(ORANGE));
+        fb.text_big_center(80, info.name, 2, YELLOW, Some(ORANGE));
+    }
+    if t > 50 {
+        fb.text_center(102, info.mode, CYAN);
     }
     if t > 60 {
-        fb.text_center(112, info.tip[0], LGREY);
-        fb.text_center(122, info.tip[1], LGREY);
+        fb.text_center(118, info.tip[0], LGREY);
+        fb.text_center(128, info.tip[1], LGREY);
     }
     if t > 90 && t % 30 < 20 {
-        fb.text_center_sh(142, "GET READY", WHITE, info.border);
+        fb.text_center_sh(146, "GET READY", WHITE, info.border);
     }
-    fb.text_center(170, info.mode, GREY);
     fb.text_center(
-        182,
+        158,
         &format!("LIVES {}   {}", g.stats.lives, g.diff.name()),
-        DGREY,
+        GREY,
     );
 }
 

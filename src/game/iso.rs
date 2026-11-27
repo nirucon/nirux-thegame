@@ -1205,92 +1205,66 @@ impl Level for Iso {
 }
 
 impl Iso {
+    /// The deck and the dunes, worked out for every pixel in fixed point
+    /// from textures made once.
     fn draw_ground(&self, fb: &mut Fb, ox: i32, oy: i32) {
+        let tex = textures();
         let cam = self.cam;
         let t = self.t;
+        let blink = (t / 20) as usize;
+        let sparkle_on = t % 12 < 6;
         // Per column: how far below the last deck pixel we are, and where
         // that deck pixel was (for the face where the deck drops away).
         let mut since = [i32::MAX; W as usize];
-        let mut edge = [(0f32, 0f32); W as usize];
-        let mut dune_c = (0u8, 0i32);
-        let mut tile = ((i32::MIN, 0), false, 0u32);
+        let mut edge = [0i32; W as usize];
+        let mut tile = ((i32::MIN, 0), false, 0usize);
+        const ONE: f32 = 65536.0;
+        // Ground coordinates grow by half a unit per pixel along a row; the
+        // dunes far below move at 0.45 of that.
+        let step = (0.5 * ONE) as i32;
+        let dstep = (0.5 * 0.45 * ONE) as i32;
         for y in HUD_H - DROP..H {
             let yy = (y - oy) as f32 + 0.5;
             let ya = OY - yy;
-            // Along a row both ground coordinates grow by half a unit per
-            // pixel.
-            let xa0 = (0 - ox) as f32 + 0.5 - OX;
-            let mut df = (xa0 + 2.0 * ya) * 0.5 - 0.5;
-            let mut l = (xa0 - 2.0 * ya) * 0.5 - 0.5;
+            let xa0 = (-ox) as f32 + 0.5 - OX;
+            let df = (xa0 + 2.0 * ya) * 0.5;
+            let l = (xa0 - 2.0 * ya) * 0.5;
+            let mut ff = ((cam + df) * ONE) as i32;
+            let mut lf = (l * ONE) as i32;
+            let mut pf = ((cam + df) * 0.45 * ONE) as i32;
+            let mut pl = (l * 0.45 * ONE) as i32;
+            let row = (y * W) as usize;
             for x in 0..W {
-                df += 0.5;
-                l += 0.5;
-                let f = cam + df;
-                let fi = ffloor(f * (1.0 / 16.0));
-                let li = ffloor(l * (1.0 / 16.0));
+                let fi = ff >> 20;
+                let li = lf >> 20;
                 let xi = x as usize;
                 if (fi, li) != tile.0 {
-                    tile = ((fi, li), deck(fi, li), hash(fi, li));
+                    let h = hash(fi, li) as usize;
+                    tile = (
+                        (fi, li),
+                        deck(fi, li),
+                        (h % 11) * 2 + ((fi + li) & 1) as usize,
+                    );
                 }
-                let on = tile.1;
-                let c = if on {
+                let c = if tile.1 {
                     since[xi] = 0;
-                    edge[xi] = (f, l);
-                    let (fu, lu) = (f - fi as f32 * 16.0, l - li as f32 * 16.0);
-                    let base = if (fi + li) & 1 == 0 { GREY } else { LGREY };
-                    if fu < 1.0 || lu > 15.0 {
-                        DGREY
-                    } else if lu < 1.0 || fu > 15.0 {
-                        if base == LGREY {
-                            WHITE
-                        } else {
-                            LGREY
-                        }
-                    } else {
-                        let h = tile.2;
-                        match h % 11 {
-                            0 if (4.0..12.0).contains(&fu) && (4.0..12.0).contains(&lu) => {
-                                if (fu as i32) % 2 == 0 {
-                                    DGREY
-                                } else {
-                                    base
-                                }
-                            }
-                            1 if (6.0..10.0).contains(&lu) => {
-                                let k = (fu - (lu - 8.0).abs()) as i32;
-                                if (6..9).contains(&k) {
-                                    YELLOW
-                                } else {
-                                    base
-                                }
-                            }
-                            2 if ((fu - 8.0).powi(2) + (lu - 8.0).powi(2)) < 4.0 => {
-                                if (t / 20 + h) % 4 == 0 {
-                                    LRED
-                                } else {
-                                    RED
-                                }
-                            }
-                            _ => {
-                                if base == GREY && (x + y) & 1 == 0 && h % 3 == 0 {
-                                    LGREY
-                                } else {
-                                    base
-                                }
-                            }
-                        }
+                    edge[xi] = ((ff >> 18) + (lf >> 18)) & 1;
+                    let fu = ((ff >> 16) & 15) as usize;
+                    let lu = ((lf >> 16) & 15) as usize;
+                    let mut c = tex.deck[tile.2][(lu << 4) | fu];
+                    if c == RED && (blink + tile.2) % 4 == 0 {
+                        c = LRED;
                     }
+                    c
                 } else {
                     since[xi] = since[xi].saturating_add(1);
                     let k = since[xi];
                     if k <= DROP {
-                        let (f2, l2) = edge[xi];
-                        let stripe = ((f2 + l2) as i32 / 4) % 2 == 0;
                         if k == 1 {
                             LGREY
                         } else if k > DROP - 3 {
                             BLACK
-                        } else if stripe {
+                        } else if edge[xi] == 0 {
                             DGREY
                         } else if k % 6 == 3 {
                             BROWN
@@ -1298,44 +1272,40 @@ impl Iso {
                             BLACK
                         }
                     } else {
-                        // Dunes of glass far below, scrolling slower; the
-                        // band is worked out every other pixel.
-                        let pf = cam * 0.45 + df * 0.45;
-                        let pl = l * 0.45;
-                        if x & 1 == 0 || dune_c.1 != y {
-                            let dune = (fsin(pf * 0.05) * 6.0
-                                + fsin(pl * 0.09 + pf * 0.013) * 9.0
-                                + pl * 0.3) as i32;
-                            dune_c = (dune.rem_euclid(12) as u8, y);
-                        }
-                        let band = dune_c.0;
-                        let sparkle = (x & 1 == 0)
-                            && hash(pf as i32, pl as i32) % 97 == 0
-                            && (t / 6 + (pf as u32)) % 5 == 0;
-                        if sparkle {
-                            if t % 12 < 6 {
+                        let d =
+                            tex.dunes[((((pl >> 16) & 255) << 8) | ((pf >> 16) & 255)) as usize];
+                        if d & 0x80 != 0 && (t / 6 + (pf >> 16) as u32) % 5 == 0 {
+                            if sparkle_on {
                                 WHITE
                             } else {
                                 CYAN
                             }
-                        } else if band < 2 {
-                            BROWN
-                        } else if band < 4 {
-                            if (x + y) & 1 == 0 {
-                                BROWN
-                            } else {
-                                ORANGE
-                            }
-                        } else if band < 9 || (x + y) & 1 == 0 {
-                            ORANGE
                         } else {
-                            YELLOW
+                            let band = d & 0x7f;
+                            let odd = (x + y) & 1 == 0;
+                            if band < 2 {
+                                BROWN
+                            } else if band < 4 {
+                                if odd {
+                                    BROWN
+                                } else {
+                                    ORANGE
+                                }
+                            } else if band < 9 || odd {
+                                ORANGE
+                            } else {
+                                YELLOW
+                            }
                         }
                     }
                 };
                 if y >= HUD_H {
-                    fb.px[(y * W + x) as usize] = c;
+                    fb.px[row + xi] = c;
                 }
+                ff += step;
+                lf += step;
+                pf += dstep;
+                pl += dstep;
             }
         }
     }
@@ -1745,29 +1715,81 @@ impl Iso {
     }
 }
 
-#[inline]
-fn ffloor(v: f32) -> i32 {
-    let i = v as i32;
-    if v < i as f32 {
-        i - 1
-    } else {
-        i
-    }
+struct Textures {
+    /// 16x16 deck tiles: (variant * 2 + light or dark) by (lu * 16 + fu).
+    deck: Vec<[u8; 256]>,
+    /// 256x256 dunes: the band (0 to 11), bit 7 for a glint of glass.
+    dunes: Vec<u8>,
 }
 
-/// A table sine, cheap enough for every pixel.
-fn fsin(x: f32) -> f32 {
+fn textures() -> &'static Textures {
     use std::sync::OnceLock;
-    static T: OnceLock<[f32; 256]> = OnceLock::new();
-    let t = T.get_or_init(|| {
-        let mut t = [0f32; 256];
-        for (i, v) in t.iter_mut().enumerate() {
-            *v = (i as f32 * std::f32::consts::TAU / 256.0).sin();
+    static T: OnceLock<Textures> = OnceLock::new();
+    T.get_or_init(|| {
+        let mut deck = Vec::new();
+        for variant in 0..11 {
+            for light in 0..2 {
+                let base = if light == 0 { GREY } else { LGREY };
+                let mut tx = [0u8; 256];
+                for lu in 0..16usize {
+                    for fu in 0..16usize {
+                        let (f, l) = (fu as f32 + 0.5, lu as f32 + 0.5);
+                        let c = if fu == 0 || lu == 15 {
+                            DGREY
+                        } else if lu == 0 || fu == 15 {
+                            if base == LGREY {
+                                WHITE
+                            } else {
+                                LGREY
+                            }
+                        } else {
+                            match variant {
+                                0 if (4..12).contains(&fu) && (4..12).contains(&lu) => {
+                                    if fu % 2 == 0 {
+                                        DGREY
+                                    } else {
+                                        base
+                                    }
+                                }
+                                1 if (6..10).contains(&lu) => {
+                                    let k = (f - (l - 8.0).abs()) as i32;
+                                    if (6..9).contains(&k) {
+                                        YELLOW
+                                    } else {
+                                        base
+                                    }
+                                }
+                                2 if ((f - 8.0).powi(2) + (l - 8.0).powi(2)) < 4.0 => RED,
+                                _ => {
+                                    if base == GREY && (fu + lu) % 2 == 0 && variant % 3 == 0 {
+                                        LGREY
+                                    } else {
+                                        base
+                                    }
+                                }
+                            }
+                        };
+                        tx[(lu << 4) | fu] = c;
+                    }
+                }
+                deck.push(tx);
+            }
         }
-        t
-    });
-    let i = (x * (256.0 / std::f32::consts::TAU)) as i32;
-    t[(i & 255) as usize]
+        let mut dunes = vec![0u8; 65536];
+        let tau = std::f32::consts::TAU;
+        for v in 0..256usize {
+            for u in 0..256usize {
+                let (uf, vf) = (u as f32, v as f32);
+                let d = (tau * uf / 128.0).sin() * 6.0
+                    + (tau * (vf / 64.0 + uf / 256.0)).sin() * 9.0
+                    + vf * (72.0 / 256.0);
+                let band = (d as i32).rem_euclid(12) as u8;
+                let glint = hash(u as i32, v as i32) % 97 == 0;
+                dunes[(v << 8) | u] = band | if glint { 0x80 } else { 0 };
+            }
+        }
+        Textures { deck, dunes }
+    })
 }
 
 #[cfg(test)]

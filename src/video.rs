@@ -1,11 +1,17 @@
 //! The X11 window: one window with a hidden pointer, fullscreen through
 //! `_NET_WM_STATE_FULLSCREEN` (or by covering the screen when no window
-//! manager runs), the keyboard, and presenting the scaled picture with
-//! MIT-SHM straight into shared memory (or `PutImage` in slices without it).
+//! manager runs), the keyboard, and presenting the picture.
+//!
+//! Presenting: the 320x200 picture goes to the X server as it is (256 KB
+//! through MIT-SHM) and the RENDER extension scales it up with a nearest
+//! neighbour transform and lays the CRT scanlines over it, so the server
+//! (usually the GPU) does the big work. Without RENDER the picture is scaled
+//! here, straight into shared memory, or sent with `PutImage` in slices.
 use crate::fb::Fb;
 use crate::palette::Lut;
 use crate::scale::{self, Layout};
 use x11rb::connection::{Connection, RequestConnection};
+use x11rb::protocol::render::{self, ConnectionExt as _, PictOp, PictType};
 use x11rb::protocol::shm::ConnectionExt as _;
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
@@ -26,6 +32,17 @@ struct Shm {
     seg: u32,
     addr: *mut u8,
     size: usize,
+}
+
+/// Server side scaling with RENDER.
+struct Render {
+    pixmap: Pixmap,
+    gc: Gcontext,
+    src: render::Picture,
+    dst: render::Picture,
+    argb: Option<render::Pictformat>,
+    scale: i32,
+    scan: Option<(i32, Pixmap, render::Picture)>,
 }
 
 pub struct Video {
@@ -51,6 +68,7 @@ pub struct Video {
     border: Option<u32>,
     border_layout: Option<Layout>,
     scratch: Vec<u32>,
+    render: Option<Render>,
 }
 
 const WIN_W: u16 = 960;
@@ -163,6 +181,11 @@ impl Video {
         let map = c
             .get_keyboard_mapping(min_keycode, max_keycode - min_keycode + 1)?
             .reply()?;
+        let render = if std::env::var_os("NIRU_NO_RENDER").is_some() {
+            None
+        } else {
+            init_render(&c, win, s.root_visual, s.root_depth)
+        };
         c.map_window(win)?;
         c.flush()?;
         Ok(Video {
@@ -187,6 +210,7 @@ impl Video {
             border: None,
             border_layout: None,
             scratch: Vec::new(),
+            render,
             c,
         })
     }
@@ -371,6 +395,9 @@ impl Video {
             self.border = Some(rgb);
             self.border_layout = Some(lay);
         }
+        if self.render.is_some() {
+            return self.present_render(fb, lut, lay, crt);
+        }
         let n = (lay.w * lay.h) as usize;
         if self.ensure_shm(n * 4) {
             let s = self.shm.as_ref().unwrap();
@@ -426,6 +453,230 @@ impl Video {
         self.c.get_input_focus()?.reply()?;
         Ok(())
     }
+}
+
+impl Video {
+    /// The RENDER path: upload 320x200, let the server scale it.
+    fn present_render(&mut self, fb: &Fb, lut: &Lut, lay: Layout, crt: bool) -> Res<()> {
+        let (w, h) = (crate::fb::W as usize, crate::fb::H as usize);
+        let n = w * h;
+        let use_shm = self.ensure_shm(n * 4);
+        let Some(r) = self.render.as_mut() else {
+            return Ok(());
+        };
+        if use_shm {
+            let s = self.shm.as_ref().unwrap();
+            // SAFETY: the segment is page aligned and at least n*4 bytes.
+            let dst = unsafe { std::slice::from_raw_parts_mut(s.addr as *mut u32, n) };
+            for (o, &p) in dst.iter_mut().zip(fb.px.iter()) {
+                *o = lut.color[p as usize];
+            }
+            self.c.shm_put_image(
+                r.pixmap,
+                r.gc,
+                w as u16,
+                h as u16,
+                0,
+                0,
+                w as u16,
+                h as u16,
+                0,
+                0,
+                self.depth,
+                ImageFormat::Z_PIXMAP.into(),
+                false,
+                s.seg,
+                0,
+            )?;
+        } else {
+            if self.scratch.len() < n {
+                self.scratch.resize(n, 0);
+            }
+            for (o, &p) in self.scratch.iter_mut().zip(fb.px.iter()) {
+                *o = lut.color[p as usize];
+            }
+            // SAFETY: plain u32 pixels viewed as bytes.
+            let bytes =
+                unsafe { std::slice::from_raw_parts(self.scratch.as_ptr() as *const u8, n * 4) };
+            let rows = (self.c.maximum_request_bytes().saturating_sub(64) / (w * 4)).clamp(1, h);
+            let mut y = 0;
+            while y < h {
+                let k = rows.min(h - y);
+                self.c.put_image(
+                    ImageFormat::Z_PIXMAP,
+                    r.pixmap,
+                    r.gc,
+                    w as u16,
+                    k as u16,
+                    0,
+                    y as i16,
+                    0,
+                    self.depth,
+                    &bytes[y * w * 4..(y + k) * w * 4],
+                )?;
+                y += k;
+            }
+        }
+        if r.scale != lay.scale {
+            let f = (65536 / lay.scale.max(1)) as i32;
+            self.c.render_set_picture_transform(
+                r.src,
+                render::Transform {
+                    matrix11: f,
+                    matrix12: 0,
+                    matrix13: 0,
+                    matrix21: 0,
+                    matrix22: f,
+                    matrix23: 0,
+                    matrix31: 0,
+                    matrix32: 0,
+                    matrix33: 65536,
+                },
+            )?;
+            r.scale = lay.scale;
+        }
+        self.c.render_composite(
+            PictOp::SRC,
+            r.src,
+            x11rb::NONE,
+            r.dst,
+            0,
+            0,
+            0,
+            0,
+            lay.x as i16,
+            lay.y as i16,
+            lay.w as u16,
+            lay.h as u16,
+        )?;
+        let dark = scale::dark_rows(lay.scale);
+        if crt && dark > 0 {
+            if let Some(fmt) = r.argb {
+                if r.scan.as_ref().map(|s| s.0) != Some(lay.scale) {
+                    if let Some((_, pm, pic)) = r.scan.take() {
+                        let _ = self.c.render_free_picture(pic);
+                        let _ = self.c.free_pixmap(pm);
+                    }
+                    // One column of the scanline pattern: clear rows, then
+                    // the dark ones (black at 48 percent).
+                    let pm = self.c.generate_id()?;
+                    self.c
+                        .create_pixmap(32, pm, self.win, 1, lay.scale as u16)?;
+                    let gc = self.c.generate_id()?;
+                    self.c.create_gc(gc, pm, &CreateGCAux::new())?;
+                    let mut data = Vec::new();
+                    for row in 0..lay.scale {
+                        let a: u32 = if row >= lay.scale - dark {
+                            0x7a00_0000
+                        } else {
+                            0
+                        };
+                        data.extend_from_slice(&a.to_le_bytes());
+                    }
+                    self.c.put_image(
+                        ImageFormat::Z_PIXMAP,
+                        pm,
+                        gc,
+                        1,
+                        lay.scale as u16,
+                        0,
+                        0,
+                        0,
+                        32,
+                        &data,
+                    )?;
+                    self.c.free_gc(gc)?;
+                    let pic = self.c.generate_id()?;
+                    self.c.render_create_picture(
+                        pic,
+                        pm,
+                        fmt,
+                        &render::CreatePictureAux::new().repeat(render::Repeat::NORMAL),
+                    )?;
+                    r.scan = Some((lay.scale, pm, pic));
+                }
+                if let Some((_, _, pic)) = r.scan {
+                    self.c.render_composite(
+                        PictOp::OVER,
+                        pic,
+                        x11rb::NONE,
+                        r.dst,
+                        0,
+                        0,
+                        0,
+                        0,
+                        lay.x as i16,
+                        lay.y as i16,
+                        lay.w as u16,
+                        lay.h as u16,
+                    )?;
+                }
+            }
+        }
+        // Wait until the server has read the shared image.
+        self.c.get_input_focus()?.reply()?;
+        Ok(())
+    }
+}
+
+/// Set up RENDER scaling, or None when the server cannot do it.
+fn init_render(c: &RustConnection, win: Window, visual: Visualid, depth: u8) -> Option<Render> {
+    c.extension_information(render::X11_EXTENSION_NAME).ok()??;
+    c.render_query_version(0, 11).ok()?.reply().ok()?;
+    let formats = c.render_query_pict_formats().ok()?.reply().ok()?;
+    let mut vis_fmt = None;
+    for sc in &formats.screens {
+        for d in &sc.depths {
+            for v in &d.visuals {
+                if v.visual == visual {
+                    vis_fmt = Some(v.format);
+                }
+            }
+        }
+    }
+    let vis_fmt = vis_fmt?;
+    let argb = formats
+        .formats
+        .iter()
+        .find(|f| {
+            f.depth == 32
+                && f.type_ == PictType::DIRECT
+                && f.direct.alpha_mask == 0xff
+                && f.direct.alpha_shift == 24
+                && f.direct.red_shift == 16
+        })
+        .map(|f| f.id);
+    let pixmap = c.generate_id().ok()?;
+    c.create_pixmap(depth, pixmap, win, crate::fb::W as u16, crate::fb::H as u16)
+        .ok()?
+        .check()
+        .ok()?;
+    let gc = c.generate_id().ok()?;
+    c.create_gc(gc, pixmap, &CreateGCAux::new().graphics_exposures(0))
+        .ok()?;
+    let src = c.generate_id().ok()?;
+    c.render_create_picture(src, pixmap, vis_fmt, &render::CreatePictureAux::new())
+        .ok()?
+        .check()
+        .ok()?;
+    let dst = c.generate_id().ok()?;
+    c.render_create_picture(dst, win, vis_fmt, &render::CreatePictureAux::new())
+        .ok()?
+        .check()
+        .ok()?;
+    c.render_set_picture_filter(src, b"nearest", &[])
+        .ok()?
+        .check()
+        .ok()?;
+    Some(Render {
+        pixmap,
+        gc,
+        src,
+        dst,
+        argb,
+        scale: 0,
+        scan: None,
+    })
 }
 
 impl Drop for Video {

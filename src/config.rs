@@ -236,7 +236,7 @@ impl Default for Save {
             .map(|(i, n)| Score {
                 name: n.to_string(),
                 score: 50000 - i as u32 * 5000,
-                sector: 1 + (3 - (i as u8 * 3 / 10).min(2)) % 3,
+                sector: [3, 3, 2, 2, 2, 1, 1, 1, 1, 1][i],
                 difficulty: Difficulty::Normal,
             })
             .collect();

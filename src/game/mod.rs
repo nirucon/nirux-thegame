@@ -42,21 +42,21 @@ pub struct Info {
 pub const INFO: [Info; LEVELS] = [
     Info {
         name: "THE OUTER RIM",
-        mode: "SPACE",
+        mode: "SPACE SHOOTER",
         tip: ["FLY OVER THE CAPITAL SHIP", "AND BLOW UP ITS GENERATORS"],
         border: BLUE,
         song: SongId::Level1,
     },
     Info {
         name: "GLASS DUNES",
-        mode: "ISOMETRIC",
+        mode: "ISOMETRIC FLIGHT",
         tip: ["UP AND DOWN CHANGE ALTITUDE", "WATCH YOUR SHADOW"],
         border: BROWN,
         song: SongId::Level2,
     },
     Info {
         name: "IRON JUNGLE",
-        mode: "ON FOOT",
+        mode: "COMMANDO ON FOOT",
         tip: ["FIRE SHOOTS WHERE YOU FACE", "SPECIAL THROWS A GRENADE"],
         border: GREEN,
         song: SongId::Level3,

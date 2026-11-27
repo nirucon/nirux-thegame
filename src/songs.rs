@@ -135,7 +135,7 @@ fn kit(bright: f32) -> Vec<Instr> {
             pw: 0.42,
             pwm: 0.004,
             vib: (14, 0.3, 8.0),
-            vol: 0.95,
+            vol: 1.1,
             ..Default::default()
         },
         // 6 echo of the lead, softer.
@@ -161,7 +161,7 @@ fn kit(bright: f32) -> Vec<Instr> {
             wave: Saw,
             adsr: [1, 9, 11, 8],
             vib: (12, 0.32, 8.0),
-            vol: 0.72,
+            vol: 0.85,
             ..Default::default()
         },
         // 9 pluck: short bright pulse for runs.

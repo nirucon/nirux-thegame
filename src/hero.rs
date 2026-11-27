@@ -1,4 +1,5 @@
 //! NIRUX, the hero: the guardian the Core made and woke when NULL took it.
+//! This file is the same in every NIRUX game (NIRUX II adds the side view).
 //! No face and no voice; a pale helmet with a green chevron visor, a blue
 //! suit and a red scarf. These colours and shapes are the canon (see
 //! docs/LORE.md), so every NIRUX game draws the hero the same way.
@@ -6,6 +7,8 @@
 //! The portrait is drawn by code at any size: shaded with an ordered
 //! dither the way C64 artists shaded by hand, then given a black outline so
 //! it reads on raster bars and stars alike.
+// The canon is the same file in every game; each uses what it needs.
+#![allow(dead_code)]
 use crate::fb::{Fb, Sprite};
 use crate::palette::*;
 
@@ -253,6 +256,181 @@ pub fn topdown(fb: &mut Fb, x: i32, y: i32, fx: f32, fy: f32, t: u32) {
         (y as f32 - 2.0 + fy * 1.6).round() as i32,
         VISOR,
     );
+}
+
+/// What NIRUX is doing, for the side view.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Pose {
+    Stand,
+    /// Running; the phase turns once per stride.
+    Run(f32),
+    /// In the air; negative is rising.
+    Air(f32),
+    Crouch,
+    /// On a ladder; the phase moves the hands.
+    Climb(f32),
+    Hurt,
+}
+
+/// NIRUX seen from the side, feet at (x, y), facing right if `f` is 1 and
+/// left if -1. `scarf` is how many pieces are left (0 to 3): the scarf is
+/// the health, and it is drawn that long. `aim_up` raises the arm.
+#[allow(clippy::too_many_arguments)]
+pub fn side(
+    fb: &mut Fb,
+    x: i32,
+    y: i32,
+    pose: Pose,
+    f: i32,
+    t: u32,
+    scarf: u8,
+    firing: bool,
+    aim_up: bool,
+) {
+    let fx = |dx: i32| x + dx * f;
+    let (hip, crouch) = match pose {
+        Pose::Crouch => (y - 6, true),
+        _ => (y - 9, false),
+    };
+    let top = if crouch { hip - 8 } else { hip - 9 };
+    // The scarf first, behind everything: it streams back from the neck,
+    // longer the more is left, and flies higher when running or falling.
+    let len = [0, 5, 9, 13][scarf.min(3) as usize];
+    let lift = match pose {
+        Pose::Run(_) => 1.0,
+        Pose::Air(vy) => (vy * 0.6).clamp(-1.5, 2.0),
+        _ => -0.6,
+    };
+    let (nx, ny) = (fx(-1), top + 2);
+    fb.set(nx, ny, SCARF[1]);
+    fb.set(fx(0), ny, SCARF[1]);
+    for k in 1..=len {
+        let kf = k as f32;
+        let wave = (t as f32 * 0.3 - kf * 0.8).sin() * (kf * 0.12 + 0.3);
+        let sy = ny as f32 + wave - lift * kf * 0.18
+            + if matches!(pose, Pose::Stand | Pose::Crouch) {
+                kf * 0.45
+            } else {
+                0.0
+            };
+        let sx = nx - f * k;
+        let c = if k % 3 == 0 { SCARF[2] } else { SCARF[1] };
+        fb.set(sx, sy.round() as i32, c);
+        if k < len - 2 {
+            fb.set(sx, sy.round() as i32 + 1, SCARF[0]);
+        }
+    }
+    if len > 4 {
+        // The forked end.
+        let k = len + 1;
+        let wave = (t as f32 * 0.3 - k as f32 * 0.8).sin() * 1.5;
+        fb.set(nx - f * k, ny + wave.round() as i32 - 1, SCARF[2]);
+        fb.set(nx - f * k, ny + wave.round() as i32 + 2, SCARF[1]);
+    }
+    // Legs.
+    let leg = |fb: &mut Fb, hx: i32, hy: i32, kx: i32, ky: i32, ex: i32, ey: i32, c: u8| {
+        fb.line(hx, hy, kx, ky, c);
+        fb.line(hx + 1, hy, kx + 1, ky, c);
+        fb.line(kx, ky, ex, ey, c);
+        fb.line(kx + 1, ky, ex + 1, ey, c);
+        fb.hline(ex.min(ex + 2 * f), ex.max(ex + 2 * f), ey, BLACK);
+    };
+    match pose {
+        Pose::Run(ph) => {
+            for (side, c) in [(1.0f32, SUIT[1]), (-1.0, SUIT[2])] {
+                let a = ph * std::f32::consts::TAU
+                    + if side > 0.0 {
+                        0.0
+                    } else {
+                        std::f32::consts::PI
+                    };
+                let fxo = (a.sin() * 4.0) as i32;
+                let up = (a.cos().max(0.0) * 3.0) as i32;
+                leg(
+                    fb,
+                    x,
+                    hip,
+                    fx(fxo / 2 + 1),
+                    hip + 4 - up / 2,
+                    fx(fxo),
+                    y - up,
+                    c,
+                );
+            }
+        }
+        Pose::Air(_) => {
+            leg(fb, x, hip, fx(3), hip + 2, fx(1), hip + 6, SUIT[1]);
+            leg(fb, x, hip, fx(-1), hip + 4, fx(-3), y - 1, SUIT[2]);
+        }
+        Pose::Crouch => {
+            leg(fb, x, hip, fx(4), hip + 2, fx(3), y, SUIT[1]);
+            leg(fb, x, hip, fx(-2), hip + 3, fx(-3), y, SUIT[2]);
+        }
+        Pose::Climb(ph) => {
+            let a = ((ph * std::f32::consts::TAU).sin() * 2.0) as i32;
+            leg(
+                fb,
+                x,
+                hip,
+                x - 1,
+                hip + 4 + a,
+                x - 1,
+                y - 1 + a.min(0),
+                SUIT[1],
+            );
+            leg(
+                fb,
+                x,
+                hip,
+                x + 2,
+                hip + 4 - a,
+                x + 2,
+                y - 1 - a.max(0),
+                SUIT[2],
+            );
+        }
+        _ => {
+            leg(fb, x, hip, fx(1), hip + 4, fx(1), y, SUIT[1]);
+            leg(fb, x, hip, fx(-1), hip + 4, fx(-2), y, SUIT[2]);
+        }
+    }
+    // The body.
+    let hurt = pose == Pose::Hurt;
+    let body = if hurt && t % 4 < 2 { WHITE } else { SUIT[2] };
+    fb.rect(x - 3, top + 2, 7, hip - top - 1, body);
+    fb.line(fx(-3), top + 2, fx(-3), hip, SUIT[1]);
+    fb.hline(x - 3, x + 3, hip, SUIT[1]);
+    fb.set(fx(2), top + 3, SUIT[3]);
+    fb.set(fx(1), top + 5, VISOR);
+    // The shoulder guard.
+    fb.disc(fx(-1), top + 3, 2, SUIT[2]);
+    fb.set(fx(-1), top + 1, SUIT[3]);
+    fb.set(fx(-2), top + 2, SUIT[3]);
+    // The arm: forward, raised, or reaching for the rungs.
+    let (sx, sy) = (fx(0), top + 3);
+    let (hx, hy) = match pose {
+        Pose::Climb(ph) => (x + if (ph * 2.0) as i32 % 2 == 0 { 1 } else { -1 }, top - 3),
+        _ if aim_up => (fx(3), top - 5),
+        _ if firing => (fx(7), top + 3),
+        _ => (fx(4), top + 6),
+    };
+    fb.line(sx, sy, hx, hy, SUIT[1]);
+    fb.line(sx, sy + 1, hx, hy + 1, SUIT[2]);
+    fb.set(hx, hy, ARMOUR[1]);
+    fb.set(hx, hy + 1, ARMOUR[0]);
+    // The helmet, the visor's chevron towards where NIRUX looks, its glint.
+    let (cx, cy) = (x, top - 2);
+    fb.disc(cx, cy, 3, ARMOUR[2]);
+    fb.set(fx(-2), cy - 2, WHITE);
+    fb.set(fx(-1), cy - 3, WHITE);
+    fb.set(fx(-3), cy + 1, ARMOUR[1]);
+    fb.set(fx(-2), cy + 2, ARMOUR[1]);
+    fb.set(fx(1), cy, BLACK);
+    fb.set(fx(2), cy, VISOR);
+    fb.set(fx(3), cy - 1, VISOR);
+    fb.set(fx(2), cy + 1, BLACK);
+    fb.set(fx(3), cy, if t % 90 < 4 { WHITE } else { VISOR_HALO });
+    fb.set(fx(0), cy + 3, ARMOUR[0]);
 }
 
 #[cfg(test)]

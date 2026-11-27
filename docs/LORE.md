@@ -1,6 +1,7 @@
 # NIRUX: the canon
 
-This is the story bible for NIRUX and every game after it. Sequels follow
+This is the story bible for NIRUX and every game after it. The same file
+lives in the repository of every NIRUX game. Sequels follow
 it so the hero, the world and the music stay the same from game to game.
 Change it only on purpose, and change the games with it.
 
@@ -34,16 +35,28 @@ Rules: the visor is dark only when NIRUX sleeps or is gone. The scarf is
 always there. Nothing else is added to the silhouette without changing
 this file.
 
-The code is `src/hero.rs`: `hero::portrait` draws the portrait at any size
-and `hero::topdown` draws NIRUX on foot seen from above. A sequel copies
-the file unchanged.
+The code is `src/hero.rs`: `hero::portrait` draws the portrait at any size,
+`hero::topdown` draws NIRUX on foot seen from above (NIRUX) and
+`hero::side` draws NIRUX from the side (NIRUX II). A sequel copies the file
+and only adds to it.
+
+### What the canon gives the games
+
+- **The scarf is the life.** In NIRUX II every hit burns a piece of the
+  scarf, and it is drawn that long on the hero. Shrines and threads mend
+  it.
+- **The visor sees.** The visor's light is a lamp in NIRUX II: it shows
+  hidden ledges and holds ghosts still.
+- **The chest diamond is the Core's mark.** Shrines in the Undercroft carry
+  it, which is how NIRUX knows them.
 
 ## The voice: ECHO
 
 ECHO is the voice of the Core, the last of it that NULL could not reach.
 ECHO briefs NIRUX before every sector, calm and brief, and is shown as
 green text after `ECHO:`. ECHO never jokes and never says more than two
-lines at a time.
+lines at a time. In the Undercroft ECHO's signal grows weaker the deeper
+NIRUX goes: its lines break up with noise.
 
 ## The enemy: NULL
 
@@ -61,7 +74,11 @@ things go.
 - **The Static** is the noise outside everything, where NULL came from.
 - **The Undercroft** lies beneath the Core: the realm where deleted things
   go, old and dark. Terminated processes rise there as zombies, orphaned
-  ones wander, and daemons rule. It is the setting of NIRUX II.
+  ones wander, and daemons rule. It is the setting of NIRUX II. Every night
+  the **cron bells** ring and the Undercroft wakes.
+- **The Reaper** is the old process that once cleared away the dead. It
+  watches NIRUX in the Undercroft, reaps the risen dead, and its side is
+  the open question of NIRUX II.
 
 ## The music
 
@@ -75,7 +92,7 @@ the key and style of that game.
 | Game | Title | Status |
 | --- | --- | --- |
 | I | NIRUX | released: a shooter in eight sectors |
-| II | NIRUX II - NIGHT OF THE DAEMONS | planned, see [NIRUX-II.md](NIRUX-II.md) |
+| II | NIRUX II - NIGHT OF THE DAEMONS | in progress: stages 1 and 2 released, see [NIRUX-II.md](NIRUX-II.md) and the [nirux-ii](https://github.com/nirucon/nirux-ii) repository |
 
 Sequels are titled `NIRUX II - SUBTITLE`, `NIRUX III - SUBTITLE` and so
 on, and live in their own repositories as NIRUX extras.

@@ -311,7 +311,7 @@ pub const FOOT_STYLES: [FootStyle; 3] = [
         shape: 1,
     },
     FootStyle {
-        name: "NIRUX CORE",
+        name: "NULL",
         cols: [PURPLE, LRED, RED, YELLOW],
         guns: 28,
         core: 70,
@@ -1979,6 +1979,7 @@ impl Level for Foot {
                 CYAN,
                 self.muzzle > 0,
             );
+            crate::hero::topdown(fb, x, y, self.fxd, self.fyd, self.t);
             if st.shield > 0 {
                 let r = 9 + (self.t % 8 < 4) as i32;
                 for k in 0..16 {

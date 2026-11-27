@@ -34,6 +34,8 @@ pub trait Level {
 
 pub struct Info {
     pub name: &'static str,
+    /// ECHO's briefing, the voice of the Core, on the sector intro.
+    pub brief: [&'static str; 2],
     pub mode: &'static str,
     pub tip: [&'static str; 2],
     pub border: u8,
@@ -47,6 +49,10 @@ const FOOT_TIP: &str = "SPECIAL: GRENADE (X KEY, PAD B)";
 pub const INFO: [Info; LEVELS] = [
     Info {
         name: "THE OUTER RIM",
+        brief: [
+            "YOU ARE AWAKE, NIRUX. GOOD.",
+            "NULL HOLDS THE RIM. CUT THROUGH.",
+        ],
         mode: "SPACE SHOOTER",
         tip: ["FLY OVER THE CAPITAL SHIP", SIDE_TIP],
         border: BLUE,
@@ -54,6 +60,10 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "GLASS DUNES",
+        brief: [
+            "HIS STATIC HAS TURNED SAND TO GLASS.",
+            "FLY LOW, NIRUX. FLY FAST.",
+        ],
         mode: "ISOMETRIC FLIGHT",
         tip: ["WATCH YOUR SHADOW ON THE DECK", ISO_TIP],
         border: BROWN,
@@ -61,6 +71,10 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "IRON JUNGLE",
+        brief: [
+            "NO SHIP GETS UNDER THAT CANOPY.",
+            "FROM HERE YOU GO ON FOOT.",
+        ],
         mode: "COMMANDO ON FOOT",
         tip: ["HOLD FIRE TO KEEP YOUR AIM", FOOT_TIP],
         border: GREEN,
@@ -68,6 +82,7 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "THE SHIPYARDS",
+        brief: ["NULL BUILDS HIS FLEET HERE.", "BURN IT BEFORE IT LAUNCHES."],
         mode: "SPACE SHOOTER",
         tip: ["FLY THROUGH THE GANTRY GAPS", SIDE_TIP],
         border: ORANGE,
@@ -75,6 +90,10 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "ICE PYLONS",
+        brief: [
+            "THE PYLONS FEED HIM MY POWER.",
+            "BRING THEM DOWN, ONE BY ONE.",
+        ],
         mode: "ISOMETRIC FLIGHT",
         tip: ["FENCES SWITCH: LOW, THEN HIGH", ISO_TIP],
         border: LBLUE,
@@ -82,6 +101,10 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "BURNING CITY",
+        brief: [
+            "THIS CITY FOUGHT NULL AND LOST.",
+            "WALK ITS STREETS. END THE WAR.",
+        ],
         mode: "COMMANDO ON FOOT",
         tip: ["RED LIGHTS: A TRAIN IS COMING", FOOT_TIP],
         border: RED,
@@ -89,6 +112,10 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "THE GAUNTLET",
+        brief: [
+            "ONE ROAD LEADS HOME TO ME.",
+            "HE WILL THROW EVERYTHING AT YOU.",
+        ],
         mode: "SPACE SHOOTER",
         tip: ["THE ROCK WALLS KILL: STAY CLEAR", SIDE_TIP],
         border: DGREY,
@@ -96,10 +123,14 @@ pub const INFO: [Info; LEVELS] = [
     },
     Info {
         name: "THE NIRUX CORE",
+        brief: [
+            "THIS IS WHERE YOU WERE MADE.",
+            "COME HOME, NIRUX. TAKE IT BACK.",
+        ],
         mode: "THREE STAGES",
         tip: [
             "SPACE, THEN FLIGHT, THEN ON FOOT",
-            "BREAK THE CORE TO FREE NIRUX",
+            "DRIVE NULL OUT OF THE CORE",
         ],
         border: PURPLE,
         song: SongId::Level8,
@@ -130,6 +161,8 @@ pub enum Scr {
     Victory,
     Demo,
     Controls,
+    /// The prologue: how NULL took the Core and the Core woke NIRUX.
+    Story,
 }
 
 pub struct Game {
@@ -159,6 +192,11 @@ pub struct Game {
     /// Where the controls screen goes back to.
     pub controls_back: Scr,
     pub pad: crate::pad::Status,
+    /// The prologue's page, and whether it plays as part of the attract
+    /// loop (then it goes on to the high scores, not into a game).
+    pub page: usize,
+    pub page_t: u32,
+    pub story_attract: bool,
 }
 
 impl Game {
@@ -190,6 +228,9 @@ impl Game {
             last_place: None,
             controls_back: Scr::Title,
             pad: crate::pad::Status::None,
+            page: 0,
+            page_t: 0,
+            story_attract: false,
         };
         g.go(Scr::Title);
         g
@@ -219,6 +260,11 @@ impl Game {
             Scr::Clear => self.music(Some(SongId::Clear)),
             Scr::Over => self.music(Some(SongId::GameOver)),
             Scr::Victory => self.music(Some(SongId::Ending)),
+            Scr::Story => {
+                self.music(Some(SongId::Legend));
+                self.page = 0;
+                self.page_t = 0;
+            }
             _ => {}
         }
     }
@@ -282,6 +328,7 @@ impl Game {
             Scr::Intro | Scr::Clear => INFO[self.lvl].border,
             Scr::Over => RED,
             Scr::Victory | Scr::Entry => PURPLE,
+            Scr::Story => BLACK,
             _ => BLUE,
         }
     }
@@ -330,7 +377,11 @@ impl Game {
                 if ok {
                     self.sfx(Sfx::MenuSelect);
                     match self.sel {
-                        0 => self.start_run(0),
+                        0 => {
+                            self.start_run(0);
+                            self.story_attract = false;
+                            self.go(Scr::Story);
+                        }
                         1 => self.go(Scr::Select),
                         2 => {
                             self.cfg.difficulty = self.cfg.difficulty.next();
@@ -348,7 +399,8 @@ impl Game {
                     self.sel = 6;
                 }
                 if self.idle > 60 * 22 {
-                    self.go(Scr::Scores);
+                    self.story_attract = true;
+                    self.go(Scr::Story);
                     self.idle = 1;
                 }
             }
@@ -414,8 +466,28 @@ impl Game {
                     self.start_demo();
                 }
             }
+            Scr::Story => {
+                self.page_t += 1;
+                let full = screens::story_page_len(self.page) as u32 * 2 + 30;
+                let attract_key = self.story_attract
+                    && (inp.any_pressed() || inp.p_up || inp.p_down || inp.p_left || inp.p_right);
+                if attract_key {
+                    self.go(Scr::Title);
+                } else if inp.p_back {
+                    self.end_story();
+                } else if ok && self.page_t < full {
+                    self.page_t = full;
+                } else if (ok && self.page_t > 12) || self.page_t > full + 300 {
+                    self.page += 1;
+                    self.page_t = 0;
+                    self.sfx(Sfx::MenuMove);
+                    if self.page >= screens::STORY_PAGES {
+                        self.end_story();
+                    }
+                }
+            }
             Scr::Intro => {
-                if self.t > 200 || (self.t > 40 && ok) {
+                if self.t > 270 || (self.t > 40 && ok) {
                     self.start_level();
                 }
             }
@@ -527,7 +599,8 @@ impl Game {
                 }
             }
             Scr::Victory => {
-                if (self.t > 180 && ok) || self.t > 2150 {
+                let end = 600 + screens::credits_stop() as u32 * 2 + 600;
+                if (self.t > 180 && ok) || self.t > end {
                     self.after_run();
                 }
             }
@@ -572,6 +645,23 @@ impl Game {
         }
     }
 
+    fn end_story(&mut self) {
+        if self.story_attract {
+            self.story_attract = false;
+            self.go(Scr::Scores);
+        } else {
+            self.go(Scr::Intro);
+        }
+    }
+
+    /// The autopilot's input for the level being played (for --snap).
+    pub fn bot_input(&mut self) -> Input {
+        match self.level.as_mut() {
+            Some(l) => l.bot(&self.stats),
+            None => Input::default(),
+        }
+    }
+
     fn after_run(&mut self) {
         if self.save.qualifies(self.stats.score) {
             self.entry_pos = 0;
@@ -588,5 +678,41 @@ impl Game {
 
     pub fn take_cmds(&mut self) -> Vec<Cmd> {
         std::mem::take(&mut self.cmds)
+    }
+}
+
+#[cfg(test)]
+mod story_tests {
+    use super::*;
+
+    #[test]
+    fn the_prologue_plays_before_sector_one_and_in_the_attract_loop() {
+        let mut g = Game::new(Config::default(), Save::default(), false);
+        // Left alone, the title shows the prologue, then the high scores.
+        for _ in 0..60 * 23 {
+            g.update(Input::default());
+        }
+        assert_eq!(g.scr, Scr::Story);
+        assert!(g.story_attract);
+        for _ in 0..60 * 120 {
+            g.update(Input::default());
+            if g.scr != Scr::Story {
+                break;
+            }
+        }
+        assert_eq!(g.scr, Scr::Scores);
+        // Start game: the prologue, and Esc skips to the sector intro.
+        g.go(Scr::Title);
+        g.update(Input {
+            p_fire: true,
+            ..Default::default()
+        });
+        assert_eq!(g.scr, Scr::Story);
+        assert!(!g.story_attract);
+        g.update(Input {
+            p_back: true,
+            ..Default::default()
+        });
+        assert_eq!((g.scr, g.lvl), (Scr::Intro, 0));
     }
 }

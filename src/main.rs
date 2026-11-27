@@ -10,6 +10,7 @@ mod config;
 mod fb;
 mod font;
 mod game;
+mod hero;
 mod input;
 mod music;
 mod pad;
@@ -30,7 +31,10 @@ Usage: nirux-thegame [OPTIONS]
   --windowed            start in a window (default: fullscreen, see config)
   --fullscreen          start fullscreen
   --demo                start in the attract mode demo
-  --level N             start a game at sector N (1 to 3)
+  --level N             start a game at sector N (1 to 8)
+  --snap SCREEN FRAMES FILE
+                        write a picture of a screen after FRAMES steps
+                        (title, storyN, introN, levelN, ending, controls)
   --selftest [FRAMES]   play every sector with the autopilot, no window or
                         sound, and check that everything holds together
   --render-wav SONG FILE [SECONDS]
@@ -108,6 +112,24 @@ fn main() {
                     }
                 }
                 return;
+            }
+            "--snap" => {
+                // For screenshots and art checks without a window: run a
+                // screen for some frames and write the picture as a PPM.
+                let (Some(scr), Some(n), Some(file)) =
+                    (args.get(i + 1), args.get(i + 2), args.get(i + 3))
+                else {
+                    eprintln!("usage: --snap SCREEN FRAMES FILE.ppm");
+                    std::process::exit(2);
+                };
+                let n: u32 = n.parse().unwrap_or(60);
+                std::process::exit(match snap(scr, n, file) {
+                    Ok(()) => 0,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        1
+                    }
+                });
             }
             "--selftest" => {
                 let frames = args.get(i + 1).and_then(|s| s.parse().ok()).unwrap_or(9000);
@@ -294,6 +316,67 @@ fn run(o: Opts) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Play each sector with the autopilot on every difficulty, drawing every
 /// frame, then run the menus with scripted keys and render the songs.
+/// Opens a screen ("title", "story", "introN", "ending", "levelN" played
+/// by the autopilot), steps it `frames` times and writes a PPM, 2x scaled.
+fn snap(scr: &str, frames: u32, file: &str) -> std::io::Result<()> {
+    let mut g = game::Game::new(config::Config::default(), config::Save::default(), false);
+    let num = |p: &str| {
+        scr.strip_prefix(p)
+            .and_then(|n| n.parse::<usize>().ok())
+            .filter(|n| (1..=game::LEVELS).contains(n))
+            .map(|n| n - 1)
+    };
+    let mut bot = false;
+    match scr {
+        "title" => {}
+        "story" => g.go(game::Scr::Story),
+        "ending" => {
+            g.lvl = game::LEVELS - 1;
+            g.go(game::Scr::Victory);
+        }
+        "controls" => g.go(game::Scr::Controls),
+        _ => {
+            if let Some(p) = scr
+                .strip_prefix("story")
+                .and_then(|n| n.parse::<usize>().ok())
+            {
+                g.go(game::Scr::Story);
+                g.page = p.saturating_sub(1);
+            } else if let Some(l) = num("intro") {
+                g.start_run(l);
+            } else if let Some(l) = num("level") {
+                g.start_run(l);
+                g.t = 1000;
+                g.update(input::Input::default());
+                bot = true;
+            } else {
+                return Err(std::io::Error::other(format!("unknown screen {scr}")));
+            }
+        }
+    }
+    let mut fb = fb::Fb::new();
+    for _ in 0..frames {
+        let inp = if bot {
+            g.bot_input()
+        } else {
+            input::Input::default()
+        };
+        g.update(inp);
+        let _ = g.take_cmds();
+    }
+    g.draw(&mut fb);
+    let lut = palette::Lut::new([0xc0c0c0, 0x9ad284, 0x6c6c6c]);
+    let (w, h) = (fb::W as usize * 2, fb::H as usize * 2);
+    let mut out = format!("P6\n{w} {h}\n255\n").into_bytes();
+    for y in 0..h {
+        for x in 0..w {
+            let c = lut.rgb(fb.px[(y / 2) * fb::W as usize + x / 2]);
+            out.extend_from_slice(&[(c >> 16) as u8, (c >> 8) as u8, c as u8]);
+        }
+    }
+    std::fs::write(file, out)
+}
+
 fn selftest(frames: u32, verbose: bool) -> bool {
     use game::common::{Out, Stats, Status};
     let mut ok = true;
@@ -366,6 +449,9 @@ fn selftest(frames: u32, verbose: bool) -> bool {
         (80, input::Key::Right),
         (90, input::Key::Back),
         (120, input::Key::Fire),
+        (150, input::Key::Fire),
+        (170, input::Key::Back),
+        (230, input::Key::Fire),
         (400, input::Key::Back),
         (420, input::Key::Down),
         (430, input::Key::Fire),
@@ -392,7 +478,9 @@ fn selftest(frames: u32, verbose: bool) -> bool {
         v.sort();
         println!("screens visited: {}", v.join(" "));
     }
-    for s in ["Controls", "Options", "Intro", "Play", "Pause", "Title"] {
+    for s in [
+        "Controls", "Options", "Story", "Intro", "Play", "Pause", "Title",
+    ] {
         if !seen.contains(s) {
             println!("menu script never reached {s}");
             ok = false;

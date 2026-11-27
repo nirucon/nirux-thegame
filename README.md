@@ -5,11 +5,14 @@ of play in one campaign of eight sectors, chunky pixels in the sixteen C64
 colours, raster bars, and a soundtrack played live by a SID-style
 synthesiser written for the game.
 
-**Status: complete campaign (0.2.0)** · Part of the [NIRUX](https://github.com/nirucon/nirux) suite · [MIT License](LICENSE)
+**Status: complete campaign with its hero (0.3.0)** · Part of the [NIRUX](https://github.com/nirucon/nirux) suite · [MIT License](LICENSE)
 
 ![NIRUX title screen](docs/screenshots/title.png)
 
-More screenshots: [sector 1, the capital ship](docs/screenshots/sector1.png),
+More screenshots: [the prologue](docs/screenshots/story.png),
+[a sector intro](docs/screenshots/intro.png),
+[the ending](docs/screenshots/ending.png),
+[sector 1, the capital ship](docs/screenshots/sector1.png),
 [the Warden](docs/screenshots/boss.png),
 [sector 2, isometric flight](docs/screenshots/sector2.png),
 [sector 3, on foot](docs/screenshots/sector3.png),
@@ -25,6 +28,22 @@ of the 1980s home computers, but everything in it is new: the ships, the
 enemies, the levels, the pixel art, the font and the music were all made
 for NIRUX, in code and text in this repository. No assets are borrowed.
 
+## The hero
+
+You are **NIRUX**: the guardian the Core built and kept asleep for the day
+it would fall. When NULL came out of the Static and took the Core, the
+Core spent its last power to wake you and throw you to the Outer Rim. No
+face, no voice, one name. ECHO, the voice of the Core, briefs you before
+every sector; eight sectors stand between you and home.
+
+The prologue plays when you start a game (Esc skips it) and in the attract
+loop, and the ending tells where NULL went. NIRUX, ECHO and NULL return in
+the games to come: [docs/LORE.md](docs/LORE.md) is the canon, and
+[docs/NIRUX-II.md](docs/NIRUX-II.md) is the concept for the next one,
+**NIRUX II - NIGHT OF THE DAEMONS**.
+
+## The campaign
+
 The campaign has eight sectors of three to six minutes each, about forty
 minutes straight through when it goes well. It starts easy and gets harder,
 and every sector you reach stays open in **Level select**, so one sector
@@ -39,7 +58,7 @@ now and then is a game of its own.
 | 5 | Ice Pylons | isometric flight | the Sentinel, the Reactor |
 | 6 | Burning City | on foot | a tank, the heli gunship |
 | 7 | The Gauntlet | space shooter | the Warden Mk II, a gunship, the Executor |
-| 8 | The NIRUX Core | all three, one after the other | the Core Guardian, the Core Spire, the NIRUX Core |
+| 8 | The NIRUX Core | all three, one after the other | NULL's Vanguard, the Core Spire, NULL |
 
 - **Space shooter** (sectors 1, 4, 7): fly right through fighter waves,
   asteroid fields, shipyard gantries and rock tunnels, and over capital
@@ -126,6 +145,7 @@ time.
 | Song | Where |
 | --- | --- |
 | Nirux | the title theme, A minor |
+| Legend of Nirux | the prologue, D minor; the hero's call |
 | Outer Rim | sector 1, D major, bright and heroic |
 | Glass Dunes | sector 2, E minor, mysterious and driving |
 | Iron Jungle | sector 3, C minor, a march with snare rolls |
@@ -171,6 +191,9 @@ nirux-thegame --selftest [FRAMES]
                               autopilot, without a window or sound, and check
                               the menus and the music
 nirux-thegame --render-wav SONG FILE [SECONDS]
+nirux-thegame --snap SCREEN FRAMES FILE.ppm
+                              write a picture of a screen (title, storyN,
+                              introN, levelN, ending, controls) without a window
 nirux-thegame --list-songs
 nirux-thegame --version
 ```
@@ -197,7 +220,8 @@ cargo test --release
 sh tests/xvfb.sh target/release/nirux-thegame 99
 ```
 
-For screenshots and testing, `--show controls`, `--show select` and
+For screenshots and testing, `--snap` draws any screen to a file without
+a window, `--show controls`, `--show select` and
 `--show ending` open a screen directly, `--bot` lets the autopilot play,
 and `NIRUX_STAGE=2` or `3` starts sector 8 at a later stage.
 

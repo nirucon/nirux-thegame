@@ -9,12 +9,58 @@ use std::sync::OnceLock;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const SCROLL: &str = "WELCOME TO NIRUX ...  AN ORIGINAL SHOOTER FOR THE NIRUX DESKTOP, \
-    WITH PIXELS, RASTER BARS AND A THREE VOICE SYNTHESISER OF ITS OWN ...  \
-    ARROWS OR WASD TO MOVE, SPACE OR CTRL TO FIRE, X OR SHIFT FOR BOMBS AND GRENADES, \
-    ESC PAUSES, F11 FULLSCREEN, M MUTES ...  THIS DEMO HOLDS THREE SECTORS: \
-    THE OUTER RIM, THE GLASS DUNES AND THE IRON JUNGLE ...  CLEAR A SECTOR AND IT \
-    STAYS OPEN IN LEVEL SELECT ...  GOOD LUCK, PILOT ...          ";
+const SCROLL: &str = "NIRUX ...  THE CORE HAS FALLEN AND NULL HOLDS ALL EIGHT SECTORS ...  \
+    ONE GUARDIAN IS LEFT ...  ARROWS OR WASD TO MOVE, SPACE OR CTRL TO FIRE, \
+    X OR SHIFT FOR BOMBS AND GRENADES, ESC PAUSES, F11 FULLSCREEN, M MUTES ...  \
+    GAMEPADS WORK TOO, PLUG ONE IN ANY TIME ...  CLEAR A SECTOR AND IT STAYS OPEN \
+    IN LEVEL SELECT ...  AN ORIGINAL GAME FOR THE NIRUX DESKTOP, WITH PIXELS, \
+    RASTER BARS AND A THREE VOICE SYNTHESISER OF ITS OWN ...  \
+    THE CORE IS WAITING, NIRUX ...          ";
+
+/// The prologue, page by page. Lines fit the screen (38 characters).
+const STORY: [&[&str]; 4] = [
+    &[
+        "LONG AGO THE NIRUX CORE WAS BUILT",
+        "TO KEEP EIGHT SECTORS ALIVE.",
+        "",
+        "DEEP INSIDE IT SLEPT A GUARDIAN,",
+        "MADE FOR ONE DAY ONLY:",
+        "THE DAY THE CORE WOULD FALL.",
+    ],
+    &[
+        "THAT DAY CAME OUT OF THE STATIC.",
+        "ITS NAME WAS NULL.",
+        "",
+        "NULL TOOK THE CORE AND SEALED",
+        "THE SECTORS ONE BY ONE, UNTIL",
+        "ONLY SILENCE WAS LEFT.",
+    ],
+    &[
+        "WITH ITS LAST POWER THE CORE",
+        "WOKE ITS GUARDIAN AND THREW IT",
+        "TO THE OUTER RIM, FAR FROM NULL.",
+        "",
+        "NO FACE. NO VOICE. ONE NAME.",
+    ],
+    &[
+        "",
+        "",
+        "",
+        "EIGHT SECTORS STAND BETWEEN YOU",
+        "AND THE CORE.",
+        "TAKE THEM BACK.",
+    ],
+];
+
+pub const STORY_PAGES: usize = STORY.len();
+
+/// How many characters a page types out.
+pub fn story_page_len(p: usize) -> usize {
+    STORY
+        .get(p)
+        .map(|l| l.iter().map(|s| s.len() + 4).sum())
+        .unwrap_or(0)
+}
 
 fn stars() -> &'static std::sync::Mutex<Stars> {
     static S: OnceLock<std::sync::Mutex<Stars>> = OnceLock::new();
@@ -167,6 +213,9 @@ fn title(g: &Game, fb: &mut Fb) {
     for (i, &c) in [BLUE, BLACK, LBLUE, BLACK, BLUE, BLUE].iter().enumerate() {
         fb.hline(0, W - 1, 172 + i as i32 * 2, c);
     }
+    // The hero keeps watch beside the menu.
+    let glow = if t % 400 < 6 { 0.5 } else { 1.0 };
+    crate::hero::draw(fb, 282, 118, 11.0, t, glow);
     scroller(fb, 183, t);
     fb.text(W - text_w(VERSION) - 16, 162, &format!("V{VERSION}"), DGREY);
     fb.text(8, 162, &format!("HI {:07}", g.hi()), DGREY);
@@ -385,32 +434,143 @@ fn intro(g: &Game, fb: &mut Fb) {
         let y = ((t as i32 * 2 + i * 40) % 260) - 30;
         raster_bar(fb, y, ramp);
     }
-    fb.rect(0, 36, W, 134, BLACK);
-    fb.hline(0, W - 1, 36, info.border);
-    fb.hline(0, W - 1, 169, info.border);
+    fb.rect(0, 30, W, 143, BLACK);
+    fb.hline(0, W - 1, 30, info.border);
+    fb.hline(0, W - 1, 172, info.border);
     let show = t.min(60) as i32;
     let s = format!("SECTOR {}", g.lvl + 1);
     let x = W / 2 - text_w(&s) * 3 / 2;
-    fb.text_big(x - (60 - show) * 6 + 3, 46 + 3, &s, 3, info.border);
-    fb.text_big(x - (60 - show) * 6, 46, &s, 3, WHITE);
+    fb.text_big(x - (60 - show) * 6 + 3, 38 + 3, &s, 3, info.border);
+    fb.text_big(x - (60 - show) * 6, 38, &s, 3, WHITE);
     if t > 30 {
-        fb.text_big_center(80, info.name, 2, YELLOW, Some(ORANGE));
+        fb.text_big_center(68, info.name, 2, YELLOW, Some(ORANGE));
     }
     if t > 50 {
-        fb.text_center(102, info.mode, CYAN);
+        fb.text_center(88, info.mode, CYAN);
     }
-    if t > 60 {
-        fb.text_center(118, info.tip[0], LGREY);
-        fb.text_center(128, info.tip[1], LGREY);
+    // ECHO speaks: the Core's voice, typed out over the static.
+    if t > 56 {
+        let k = (t as usize - 56) / 2;
+        let tag = "ECHO:";
+        fb.text(10, 104, tag, if t % 24 < 16 { LGREEN } else { GREEN });
+        let a = info.brief[0];
+        let b = info.brief[1];
+        let x0 = 10 + text_w(tag) + 8;
+        fb.text(x0, 104, &a[..k.min(a.len())], LGREEN);
+        if k > a.len() {
+            fb.text(x0, 114, &b[..(k - a.len()).min(b.len())], LGREEN);
+        }
     }
-    if t > 90 && t % 30 < 20 {
-        fb.text_center_sh(146, "GET READY", WHITE, info.border);
+    if t > 110 {
+        fb.text_center(130, info.tip[0], LGREY);
+        fb.text_center(140, info.tip[1], LGREY);
+    }
+    if t > 130 && t % 30 < 20 {
+        fb.text_center_sh(154, "GET READY", WHITE, info.border);
     }
     fb.text_center(
-        158,
+        164,
         &format!("LIVES {}   {}", g.stats.lives, g.diff.name()),
         GREY,
     );
+}
+
+/// The prologue: the hero's portrait over a slow raster sky, the story
+/// typed out page by page. NULL's page tears the picture with static; on
+/// the third page the visor lights for the first time.
+fn story(g: &Game, fb: &mut Fb) {
+    fb.clear(BLACK);
+    let t = g.t;
+    let p = g.page.min(STORY_PAGES - 1);
+    let pt = g.page_t;
+    if let Ok(mut s) = stars().lock() {
+        s.update(0.3, 0.0);
+        s.draw(fb, t);
+    }
+    for i in 0..3 {
+        let y = 70 + ((t as f32 * 0.02 + i as f32 * 2.1).sin() * 16.0) as i32;
+        let ramp: &[u8] = if p == 1 { &RAMP_FIRE } else { &RAMP_PURPLE };
+        raster_bar(fb, y, ramp);
+    }
+    let glow = match p {
+        0 | 1 => 0.0,
+        2 => {
+            // The visor flickers on as the line about waking types out.
+            let k = pt as f32 / 90.0;
+            if k < 1.0 && (pt / 3) % 2 == 0 {
+                0.3
+            } else {
+                k.min(1.0)
+            }
+        }
+        _ => 1.0,
+    };
+    if p == 3 {
+        logo(fb, 18, t);
+        crate::hero::draw(fb, 160, 76, 13.0, t, glow);
+    } else {
+        crate::hero::draw(fb, 160, 46, 24.0, t, glow);
+    }
+    if p == 1 {
+        // NULL: rows of static that tear across the picture.
+        let mut r = t.wrapping_mul(2_654_435_761);
+        for _ in 0..(6 + (pt / 20).min(14)) {
+            r = r.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+            let y = (r >> 8) as i32 % 96 + 4;
+            let len = (r >> 20) as i32 % 120 + 20;
+            let x = (r >> 4) as i32 % W;
+            for k in 0..len {
+                let c = if (k + y) % 3 == 0 { WHITE } else { GREY };
+                if (r >> (k % 16)) & 1 == 1 {
+                    fb.set(x + k - 60, y, c);
+                }
+            }
+        }
+    }
+    // The text, typed two frames a character.
+    let lines = STORY[p];
+    let mut left = pt as usize / 2;
+    let y0 = 106;
+    fb.rect(0, y0 - 6, W, 76, BLACK);
+    fb.hline(0, W - 1, y0 - 6, DGREY);
+    fb.hline(0, W - 1, y0 + 69, DGREY);
+    for (i, l) in lines.iter().enumerate() {
+        let n = left.min(l.len());
+        let y = y0 + i as i32 * 11;
+        let x = (W - text_w(l)) / 2;
+        let c = if p == 1 && i == 1 { LRED } else { LGREY };
+        fb.text(x, y, &l[..n], c);
+        if n < l.len() {
+            if n > 0 || left > 0 {
+                fb.rect(
+                    x + text_w(&l[..n]),
+                    y,
+                    7,
+                    7,
+                    if t % 16 < 8 { LGREEN } else { BLACK },
+                );
+            }
+            break;
+        }
+        left -= n + 4.min(left - n);
+    }
+    if p == 2 && pt as usize / 2 >= story_page_len(2) {
+        fb.text_big_center(
+            y0 + 53,
+            "NIRUX",
+            2,
+            if t % 12 < 6 { LGREEN } else { WHITE },
+            Some(GREEN),
+        );
+    }
+    if t % 60 < 44 {
+        let s = if g.story_attract {
+            "PRESS FIRE"
+        } else {
+            "FIRE: NEXT    ESC: SKIP"
+        };
+        fb.text_center(188, s, DGREY);
+    }
 }
 
 const DARK: [u8; 16] = [0, 12, 9, 6, 6, 9, 0, 8, 9, 0, 2, 0, 11, 5, 6, 11];
@@ -578,8 +738,13 @@ const CREDITS: &[&str] = &[
     "THE GAUNTLET",
     "THE NIRUX CORE",
     "",
+    "* STARRING *",
+    "NIRUX, THE GUARDIAN",
+    "ECHO, THE VOICE OF THE CORE",
+    "AND NULL",
+    "",
     "* THE SOUNDTRACK *",
-    "NIRUX",
+    "NIRUX  LEGEND OF NIRUX",
     "OUTER RIM  GLASS DUNES",
     "IRON JUNGLE  SHIPYARDS",
     "ICE PYLONS  BURNING CITY",
@@ -601,8 +766,17 @@ const CREDITS: &[&str] = &[
     "",
     "THANK YOU FOR PLAYING",
     "",
-    "NIRUX II IS COMING",
+    "",
+    "NIRUX WILL RETURN IN",
+    "",
+    "NIRUX II",
+    "NIGHT OF THE DAEMONS",
 ];
+
+/// How far the credits scroll before they stop.
+pub fn credits_stop() -> i32 {
+    H + (CREDITS.len() as i32 - 2) * 14 - 92
+}
 
 fn victory(g: &Game, fb: &mut Fb) {
     fb.clear(BLACK);
@@ -617,26 +791,28 @@ fn victory(g: &Game, fb: &mut Fb) {
             let y = 20 + ((t as f32 * 0.05 + i as f32 * 2.1).sin() * 12.0) as i32;
             raster_bar(fb, y, r);
         }
-        logo(fb, 34, t);
+        crate::hero::draw(fb, 160, 40, 17.0, t, 1.0);
         let score = format!("FINAL SCORE {:07}", g.stats.score);
         let lines = [
-            "CONGRATULATIONS, PILOT!",
+            "THE CORE IS FREE, NIRUX.",
+            "THE EIGHT SECTORS WAKE AGAIN.",
             "",
-            "THE CORE IS BROKEN AND",
-            "ALL EIGHT SECTORS ARE FREE.",
-            "",
-            "NIRUX IS YOURS AGAIN.",
+            "BUT NULL WAS NOT DESTROYED.",
+            "HE FLED DOWN INTO THE DARK,",
+            "WHERE THE DELETED THINGS GO.",
             "",
             &score,
         ];
         for (i, l) in lines.iter().enumerate() {
-            if t as usize > 30 + i * 20 {
+            if t as usize > 40 + i * 30 {
                 let c = if i == 0 {
                     [YELLOW, WHITE, CYAN][(t as usize / 6) % 3]
+                } else if (3..6).contains(&i) {
+                    LRED
                 } else {
                     LGREY
                 };
-                fb.text_center(92 + i as i32 * 10, l, c);
+                fb.text_center(88 + i as i32 * 10, l, c);
             }
         }
         // The ship flies home.
@@ -645,13 +821,19 @@ fn victory(g: &Game, fb: &mut Fb) {
         return;
     }
     // The credits roll.
-    let k = (t - 600) as i32;
+    // They stop when the teaser for NIRUX II reaches the middle.
+    let k = ((t - 600) as i32 / 2).min(credits_stop());
+    let last = CREDITS.len() - 2;
     for (i, l) in CREDITS.iter().enumerate() {
-        let y = H + i as i32 * 14 - k / 2;
+        let y = H + i as i32 * 14 - k;
         if !(-8..H).contains(&y) {
             continue;
         }
-        if i == 0 {
+        if i == last {
+            fb.text_big_center(y - 4, l, 2, LRED, Some(RED));
+        } else if i == last + 1 {
+            fb.text_center_sh(y + 2, l, if t % 40 < 30 { PURPLE } else { LRED }, BLACK);
+        } else if i == 0 {
             fb.text_big_center(
                 y - 4,
                 l,
@@ -695,5 +877,6 @@ pub fn draw(g: &Game, fb: &mut Fb) {
         Scr::Entry => entry(g, fb),
         Scr::Victory => victory(g, fb),
         Scr::Controls => controls(g, fb),
+        Scr::Story => story(g, fb),
     }
 }

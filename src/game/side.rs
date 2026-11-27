@@ -109,7 +109,7 @@ pub const STYLES: [BossStyle; 5] = [
         pattern: 2,
     },
     BossStyle {
-        name: "CORE GUARDIAN",
+        name: "NULL'S VANGUARD",
         cols: [RED, LRED, WHITE],
         cannon: 55,
         core: 110,

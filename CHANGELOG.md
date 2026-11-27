@@ -1,5 +1,29 @@
 # Changelog
 
+# NIRUX 0.3.0
+
+The hero.
+
+- You are NIRUX: the silent guardian the Core woke when NULL took it. A
+  pale helmet with a green chevron visor, a blue suit and a red scarf,
+  drawn as a dithered C64 portrait at any size, and on foot with the visor
+  glint and the scarf fluttering behind.
+- A prologue when a game starts (Esc skips it, fire turns the pages) and
+  in the attract loop: the Core, NULL tearing the picture with static, and
+  the visor lighting for the first time.
+- ECHO, the voice of the Core, briefs every sector on its intro.
+- A new song, Legend of Nirux, with the hero's call that later games
+  bring back.
+- The finale's bosses are NULL's Vanguard and NULL; the ending tells where
+  NULL fled, and the credits name the cast and stop on the teaser for
+  NIRUX II - NIGHT OF THE DAEMONS.
+- The hero watches over the title menu; the scroller tells the story and
+  the controls.
+- `docs/LORE.md` is the canon for the hero, the world and the music;
+  `docs/NIRUX-II.md` is the concept for the next game.
+- `--snap SCREEN FRAMES FILE` draws a screen to a picture without a window.
+- `--help` said sectors 1 to 3 for `--level`; it is 1 to 8.
+
 # NIRUX 0.2.0
 
 The whole campaign.

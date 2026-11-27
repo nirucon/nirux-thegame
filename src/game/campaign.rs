@@ -194,7 +194,7 @@ fn side_spec_raw(sector: usize) -> SideSpec {
             waves(&mut v, 2000, 2900, 200, 3, true);
             v.push((3000, Ev::Gunship(2)));
             waves(&mut v, 3100, 3900, 160, 1, true);
-            v.push((4000, Ev::Text("THE CORE GUARDIAN WAKES")));
+            v.push((4000, Ev::Text("NULL'S VANGUARD WAKES")));
             v.push((4200, Ev::Boss(4)));
             SideSpec {
                 script: v,

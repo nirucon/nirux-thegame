@@ -22,6 +22,7 @@ pub enum SongId {
     Level8,
     FinalBoss,
     Ending,
+    Legend,
 }
 
 pub const ALL: &[SongId] = &[
@@ -39,6 +40,7 @@ pub const ALL: &[SongId] = &[
     SongId::Level8,
     SongId::FinalBoss,
     SongId::Ending,
+    SongId::Legend,
 ];
 
 impl SongId {
@@ -58,6 +60,7 @@ impl SongId {
             SongId::Level8 => "level8",
             SongId::FinalBoss => "finalboss",
             SongId::Ending => "ending",
+            SongId::Legend => "legend",
         }
     }
     pub fn title(self) -> &'static str {
@@ -76,6 +79,7 @@ impl SongId {
             SongId::Level8 => "The Core (sector 8)",
             SongId::FinalBoss => "Heart of Nirux (final boss)",
             SongId::Ending => "Freedom (ending and credits)",
+            SongId::Legend => "Legend of Nirux (the prologue)",
         }
     }
     pub fn from_name(s: &str) -> Option<SongId> {
@@ -220,6 +224,7 @@ pub fn build(id: SongId) -> Song {
         SongId::Level8 => level8(),
         SongId::FinalBoss => final_boss(),
         SongId::Ending => ending(),
+        SongId::Legend => legend(),
     }
 }
 
@@ -702,6 +707,45 @@ fn ending() -> Song {
         SAW,
         "c6:4 f6:4 a6:8 | b6:4 g6:4 d6:8 | e6:4 g6:4 b6:8 | c7:6 b6:2 a6:8 |
          a5:4 c6:4 f6:8 | g6:4 b6:4 d7:8 | c7:12 g6:4 | c6:16",
+    );
+    b.echo(2, 1, at, 128, 3, ECHO);
+    b.finish()
+}
+
+/// "Legend of Nirux": D minor, slow. The hero's call (D, A, up to D)
+/// rises out of a dark pad, then returns on the saw with its echo. The
+/// call is NIRUX's motif and comes back in every NIRUX game.
+fn legend() -> Song {
+    let mut b = SongB::new("legend", 7, kit(0.8));
+    b.song.res = 0.6;
+    let dark = "Dm:16 Bb:16 Gm:16 A:16";
+    b.cutoff(0, 200.0).cutoff(64, 1400.0);
+    b.groove(0, dark, "b...............", 2, BASS, DR);
+    b.groove(1, dark, "c...............", 4, ARP, DR);
+    b.mel(2, PAD, "d5:16 | d5:16 | bb4:16 | c#5:16");
+    b.mark_loop();
+    // The call, alone over half time drums.
+    let at = b.sync("call");
+    let call = "Dm:16 Bb:16 F:16 C:16 Dm:16 Bb:16 Gm:16 A:16";
+    b.cutoff(at, 1200.0).cutoff(at + 127, 2200.0);
+    b.groove(0, call, "K...b...S...b..o", 2, BASS, DR);
+    b.groove(1, call, "c.......c.......", 4, ARP, DR);
+    b.mel(
+        2,
+        LEAD,
+        "d5:4 a5:4 d6:8 | f6:4 d6:4 bb5:8 | a5:4 c6:4 f6:8 | e6:6 d6:2 c6:8 |
+         d5:4 a5:4 d6:8 | f6:4 g6:4 d6:8 | bb5:4 d6:4 g6:8 | a6:12 e6:4",
+    );
+    // The call returns in full: saw lead, echo, the drums awake.
+    let at = b.sync("rise");
+    let rise = "Bb:16 C:16 Am:16 Dm:16 Gm:16 C:16 A:16 A:16";
+    b.cutoff(at, 2200.0).cutoff(at + 127, 3200.0);
+    b.groove(0, rise, "K.boS.boK.boS.bo", 2, BASS, DR);
+    b.mel(
+        2,
+        SAW,
+        "d6:4 f6:4 bb6:8 | g6:4 e6:4 c6:8 | a5:4 c6:4 e6:8 | d6:4 a6:4 d7:8 |
+         d7:4 c7:4 bb6:8 | g6:4 a6:4 c7:4 e6:4 | c#7:8 a6:8 | a6:16",
     );
     b.echo(2, 1, at, 128, 3, ECHO);
     b.finish()

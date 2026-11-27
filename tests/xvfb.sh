@@ -113,6 +113,11 @@ sleep 4
 after=$(stat -c %s "$SB/pcm.raw" 2>/dev/null || echo 0)
 [ "$after" -gt "$before" ] || fail "no sound written"
 ok "game started, sound flowing ($after bytes)"
+# Esc skips the prologue to the sector intro, Return starts the sector.
+key Escape
+sleep 1
+key Return
+sleep 1
 key Escape
 key Down Down Return
 sleep 0.5

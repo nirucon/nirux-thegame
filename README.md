@@ -195,6 +195,10 @@ cargo test --release
 sh tests/xvfb.sh target/release/nirux-thegame 99
 ```
 
+For screenshots and testing, `--show controls`, `--show select` and
+`--show ending` open a screen directly, `--bot` lets the autopilot play,
+and `NIRUX_STAGE=2` or `3` starts sector 8 at a later stage.
+
 `tests/xvfb.sh` runs the game in a private Xvfb with a temporary home and
 the sound going to a file, and checks the window, the picture, fullscreen,
 starting a game, sound, pause, the Controls screen, quitting and the saved
